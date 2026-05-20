@@ -3,10 +3,9 @@
   "model": "ollama/qwen3:8b",
   "instructions": [
     "/Users/tejvirmann/Documents/lattice-poc/registry/context.md",
-    "registry/skills/lims-analysis.md",
-    "registry/skills/qms-investigation.md",
-    "registry/blueprints/batch-release.md",
-    "registry/blueprints/deviation-investigation.md"
+    "/Users/tejvirmann/Documents/lattice-poc/registry/skills/qms-investigation.md",
+    "/Users/tejvirmann/Documents/lattice-poc/registry/skills/lims-analysis.md",
+    "/Users/tejvirmann/Documents/lattice-poc/registry/blueprints/batch-release.md"
   ],
   "mcp": {
     "lims": {

@@ -6,579 +6,1010 @@
   <title>Lattice</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #0d0f14;
-      --surface: #161a22;
-      --surface2: #1c2230;
-      --border: #252c38;
-      --accent: #3b82f6;
-      --accent-dim: #1d4ed8;
-      --text: #e2e8f0;
-      --text-dim: #64748b;
-      --green: #22c55e;
-      --red: #ef4444;
-      --yellow: #f59e0b;
-      --purple: #a78bfa;
-      --r: 8px;
-      --font: 'Inter', system-ui, sans-serif;
+      --navy:      #0c1e35;
+      --navy-mid:  #1a3352;
+      --navy-soft: #e8edf3;
+      --blue:      #2563eb;
+      --blue-lt:   #dbeafe;
+      --bg:        #f0f4f8;
+      --surface:   #ffffff;
+      --surface-2: #f7f9fc;
+      --border:    #e2e8f0;
+      --text:      #0c1e35;
+      --text-2:    #64748b;
+      --text-3:    #94a3b8;
+      --success:   #059669;
+      --warn:      #d97706;
+      --danger:    #dc2626;
+      --r:  6px;
+      --rl: 10px;
+      --sh: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --sh-md: 0 4px 16px rgba(0,0,0,.09);
     }
-    body { background: var(--bg); color: var(--text); font-family: var(--font);
-           font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* ── Header ── */
-    header { border-bottom: 1px solid var(--border); padding: 16px 28px;
-             display: flex; align-items: center; justify-content: space-between; }
-    .logo { display: flex; align-items: center; gap: 10px; }
-    .logo h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
-    .logo p { color: var(--text-dim); font-size: 12px; }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    #status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); display: inline-block; }
-    #status-dot.on { background: var(--green); }
-    #status-label { font-size: 12px; color: var(--text-dim); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
 
-    /* ── Tabs ── */
-    .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 28px; }
-    .tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: var(--text-dim);
-           cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
-           transition: color .15s, border-color .15s; }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    /* ── NAV ── */
+    header {
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      padding: 0 32px;
+      height: 54px;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .brand {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: rgba(255,255,255,.9);
+      flex-shrink: 0;
+    }
+    nav { display: flex; }
+    nav button {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: rgba(255,255,255,.55);
+      height: 54px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    nav button:hover  { color: rgba(255,255,255,.85); }
+    nav button.active { color: #fff; border-bottom-color: #fff; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .oc-pill {
+      font-size: 11px; font-weight: 500; padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .oc-pill.on  { background: rgba(5,150,105,.25); color: #6ee7b7; }
+    .oc-pill.off { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
 
-    /* ── Main layout ── */
-    .content { flex: 1; display: none; padding: 24px 28px; overflow-y: auto; }
-    .content.active { display: block; }
+    /* ── TABS ── */
+    main { min-height: calc(100vh - 54px); }
+    .tab { display: none; }
+    .tab.active { display: block; }
 
-    /* ── Cards ── */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-            padding: 16px; transition: border-color .15s; }
-    .card:hover { border-color: #334155; }
-    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    .card-title { font-weight: 600; font-size: 14px; }
-    .card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 12px; }
-    .card-footer { display: flex; align-items: center; justify-content: space-between; }
-    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* ── PAGE HEADER ── */
+    .ph {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 32px 0;
+    }
+    .ph h1 { font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+    .ph p  { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+    .ph-tools { display: flex; gap: 8px; align-items: center; padding-bottom: 20px; }
 
-    /* ── Badges ── */
-    .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 3px;
-             border: 1px solid; text-transform: uppercase; letter-spacing: .04em; }
-    .badge-verified { color: var(--green); border-color: #166534; background: #052e16; }
-    .badge-public   { color: var(--accent); border-color: #1e3a5f; background: #0f1d38; }
-    .badge-team     { color: var(--purple); border-color: #3730a3; background: #1e1b4b; }
-    .badge-private  { color: var(--text-dim); border-color: var(--border); background: var(--surface2); }
-    .badge-ok       { color: var(--green); border-color: #166534; background: #052e16; }
-    .badge-error    { color: var(--red); border-color: #7f1d1d; background: #2d0a0a; }
+    /* ── FORMS ── */
+    input, textarea, select {
+      font-family: inherit; font-size: 13px; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 7px 12px; outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    input[type=search] { width: 250px; }
 
-    /* ── Buttons ── */
-    .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
-           cursor: pointer; border: 1px solid; transition: background .15s, opacity .15s; }
-    .btn-primary   { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-primary:hover { background: var(--accent-dim); }
-    .btn-ghost     { background: transparent; color: var(--text-dim); border-color: var(--border); }
-    .btn-ghost:hover { color: var(--text); border-color: #475569; }
-    .btn-danger    { background: transparent; color: var(--red); border-color: #7f1d1d; }
-    .btn-danger:hover { background: #2d0a0a; }
-    .btn:disabled  { opacity: .4; cursor: not-allowed; }
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      padding: 7px 14px; border-radius: var(--r); border: 1px solid transparent;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn-navy   { background: var(--navy); color: #fff; }
+    .btn-navy:hover { background: var(--navy-mid); }
+    .btn-outline { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-outline:hover { background: var(--surface-2); }
+    .btn-ghost  { background: none; border: none; color: var(--text-2); }
+    .btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+    .btn-danger { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-xs { padding: 3px 8px; font-size: 11px; }
+    .btn-icon { padding: 5px; width: 28px; height: 28px; justify-content: center; border-radius: var(--r); }
+    .btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
 
-    /* ── Search bar ── */
-    .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
-    .search-row input, .search-row select {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-      color: var(--text); font-size: 13px; padding: 8px 12px; outline: none;
-      transition: border-color .15s; }
-    .search-row input { flex: 1; }
-    .search-row input:focus, .search-row select:focus { border-color: var(--accent); }
-    .search-row select option { background: var(--surface); }
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center;
+      font-size: 11px; font-weight: 500; padding: 2px 8px;
+      border-radius: 20px; white-space: nowrap;
+    }
+    .b-navy   { background: var(--navy); color: #fff; }
+    .b-blue   { background: var(--blue-lt); color: var(--blue); }
+    .b-green  { background: #dcfce7; color: #166534; }
+    .b-purple { background: #ede9fe; color: #5b21b6; }
+    .b-amber  { background: #fef3c7; color: #92400e; }
+    .b-gray   { background: #f1f5f9; color: var(--text-2); }
+    .b-check  { background: #f0fdf4; color: var(--success); }
 
-    /* ── Section label ── */
-    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
-                     letter-spacing: .08em; color: var(--text-dim); margin-bottom: 14px; }
+    /* ── CARDS (marketplace) ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px; padding: 28px 32px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 22px; box-shadow: var(--sh);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .card-top { display: flex; align-items: flex-start; gap: 10px; }
+    .card-top h3 { font-size: 14px; font-weight: 600; flex: 1; line-height: 1.3; }
+    .card-meta { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card p   { font-size: 13px; color: var(--text-2); flex: 1; line-height: 1.55; }
+    .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 
-    /* ── Persona list ── */
-    .persona-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-                   padding: 14px 16px; margin-bottom: 10px; display: flex;
-                   align-items: center; gap: 16px; transition: border-color .15s; }
-    .persona-row:hover { border-color: #334155; }
-    .persona-info { flex: 1; min-width: 0; }
-    .persona-name { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
-    .persona-desc { font-size: 12px; color: var(--text-dim); }
-    .persona-actions { display: flex; gap: 8px; flex-shrink: 0; }
-    .sync-label { font-size: 11px; color: var(--text-dim); }
+    /* ── PERSONAS TAB (two-pane) ── */
+    .p-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      height: calc(100vh - 54px);
+    }
+    .p-sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .p-sidebar-top {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .p-sidebar-top h2 {
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .1em;
+    }
+    .p-list { flex: 1; overflow-y: auto; }
+    .p-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 20px; cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background .1s, border-color .1s;
+    }
+    .p-item:hover  { background: var(--surface-2); }
+    .p-item.active { background: #eff6ff; border-left-color: var(--blue); }
+    .p-item-info   { flex: 1; min-width: 0; }
+    .p-item-name   { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .p-item-meta   { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 
-    /* ── Session panel ── */
-    .session-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
-    .module-list { }
-    .module-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
-                   padding: 12px 14px; margin-bottom: 8px; display: flex;
-                   align-items: flex-start; gap: 12px; cursor: pointer;
-                   transition: border-color .15s, background .15s; }
-    .module-item:hover { border-color: #334155; }
-    .module-item.on { border-color: var(--accent); background: #0f1d38; }
-    .module-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent);
-                                          cursor: pointer; flex-shrink: 0; margin-top: 2px; }
-    .module-body { flex: 1; }
-    .module-name { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
-    .module-path { font-size: 11px; color: var(--text-dim); font-family: monospace; }
-    .module-tokens { font-size: 11px; color: #818cf8; margin-top: 4px; }
+    /* New persona inline form */
+    .np-form {
+      padding: 16px 20px; background: var(--surface-2);
+      border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .np-form h3 {
+      font-size: 11px; font-weight: 700; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+    }
+    .ff { margin-bottom: 9px; }
+    .ff label { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); margin-bottom: 3px; }
+    .ff input, .ff textarea, .ff select { width: 100%; font-size: 12px; }
+    .ff textarea { resize: vertical; min-height: 52px; }
+    .ff-row { display: flex; gap: 6px; margin-top: 10px; }
+    .ff-row .btn { flex: 1; justify-content: center; }
 
-    .sidebar-card { background: var(--surface); border: 1px solid var(--border);
-                    border-radius: var(--r); padding: 16px; margin-bottom: 14px; }
-    .sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
-                     color: var(--text-dim); font-weight: 600; margin-bottom: 12px; }
-    .stat-row { display: flex; justify-content: space-between; font-size: 12px;
-                padding: 4px 0; border-bottom: 1px solid var(--border); }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-label { color: var(--text-dim); }
-    .stat-val { font-weight: 500; }
+    /* ── PERSONA MAIN ── */
+    .p-main { overflow-y: auto; display: flex; flex-direction: column; }
 
-    .token-bar { background: var(--surface2); border-radius: 4px; height: 5px;
-                 overflow: hidden; margin-top: 10px; }
-    .token-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .2s; }
-    .token-labels { display: flex; justify-content: space-between; font-size: 11px;
-                    color: var(--text-dim); margin-top: 4px; }
+    .empty-state {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      color: var(--text-3); font-size: 13px;
+    }
 
-    .mcp-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-    .mcp-toggle { display: flex; align-items: center; gap: 5px; background: var(--surface2);
-                  border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px;
-                  font-size: 12px; cursor: pointer; transition: border-color .15s; }
-    .mcp-toggle.on { border-color: var(--accent); background: #0f1d38; }
-    .mcp-toggle input { accent-color: var(--accent); cursor: pointer; }
+    /* Detail */
+    .det-header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 26px 32px 20px; flex-shrink: 0;
+    }
+    .det-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .det-header h2  { font-size: 20px; font-weight: 600; }
+    .det-desc       { font-size: 13px; color: var(--text-2); }
+    .det-actions    { display: flex; gap: 8px; margin-top: 16px; }
 
-    .model-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .field label { display: block; font-size: 11px; color: var(--text-dim);
-                   margin-bottom: 4px; font-weight: 500; }
-    .field input, .field select { width: 100%; background: var(--surface); border: 1px solid var(--border);
-                                   border-radius: 6px; color: var(--text); font-size: 12px;
-                                   padding: 7px 9px; outline: none; transition: border-color .15s; }
-    .field input:focus, .field select:focus { border-color: var(--accent); }
-    .field select option { background: var(--surface); }
+    .mod-section { padding: 24px 32px; flex: 1; overflow-y: auto; }
+    .repo-group  { margin-bottom: 28px; }
+    .rg-header   {
+      display: flex; align-items: center; gap: 8px;
+      padding-bottom: 10px; margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .rg-name  { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .08em; }
+    .rg-count { font-size: 11px; color: var(--text-3); }
 
-    .launch-btn { width: 100%; padding: 11px; background: var(--accent); color: #fff;
-                  border: none; border-radius: var(--r); font-size: 14px; font-weight: 600;
-                  cursor: pointer; transition: background .15s; }
-    .launch-btn:hover { background: var(--accent-dim); }
-    .launch-btn:disabled { background: #1e3a5f; color: #4a6fa5; cursor: not-allowed; }
-    .launch-status { font-size: 12px; text-align: center; margin-top: 8px;
-                     min-height: 18px; color: var(--text-dim); }
-    .launch-status.ok  { color: var(--green); }
-    .launch-status.err { color: var(--red); }
+    .mod-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border: 1px solid var(--border);
+      border-radius: var(--r); margin-bottom: 6px;
+      background: var(--surface);
+    }
+    .mod-info  { flex: 1; min-width: 0; }
+    .mod-name  { font-size: 13px; font-weight: 500; }
+    .mod-desc  { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+    .mod-tok   { font-size: 11px; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-    .empty { text-align: center; padding: 40px; color: var(--text-dim); font-size: 13px; }
+    /* ── MODULE PICKER ── */
+    .picker-shell { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .picker-head  {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+    }
+    .picker-head h2 { font-size: 15px; font-weight: 600; flex: 1; }
+    .picker-body  { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; }
 
-    footer { border-top: 1px solid var(--border); padding: 10px 28px;
-             font-size: 11px; color: var(--text-dim); display: flex;
-             justify-content: space-between; }
+    .pk-repos {
+      border-right: 1px solid var(--border); overflow-y: auto;
+      background: var(--surface);
+    }
+    .pk-repo-item {
+      padding: 12px 20px; cursor: pointer;
+      border-left: 2px solid transparent; transition: background .1s;
+    }
+    .pk-repo-item:hover  { background: var(--surface-2); }
+    .pk-repo-item.active { background: #eff6ff; border-left-color: var(--blue); }
+    .pk-repo-name  { font-size: 13px; font-weight: 500; }
+    .pk-repo-count { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+    .pk-mods { overflow-y: auto; padding: 20px 24px; background: var(--surface-2); }
+    .pk-mods-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .pk-mods-top h3 { font-size: 13px; font-weight: 600; color: var(--text-2); }
+
+    .pk-mod-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border: 1px solid var(--border);
+      border-radius: var(--r); margin-bottom: 6px;
+      background: var(--surface); cursor: pointer;
+      transition: border-color .15s;
+      user-select: none;
+    }
+    .pk-mod-row:hover   { border-color: #93c5fd; }
+    .pk-mod-row.checked { border-color: var(--blue); background: #eff6ff; }
+    .pk-mod-row input[type=checkbox] {
+      width: 15px; height: 15px; flex-shrink: 0;
+      accent-color: var(--blue); cursor: pointer; border: none; padding: 0;
+    }
+
+    /* ── SESSION TAB ── */
+    .s-layout { display: grid; grid-template-columns: 1fr 290px; min-height: calc(100vh - 54px); }
+    .s-main   { padding: 36px; overflow-y: auto; }
+
+    .step { margin-bottom: 40px; }
+    .step-lbl {
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .12em;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .step-num { color: var(--blue); }
+
+    .persona-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 18px; display: flex;
+      align-items: center; gap: 12px;
+    }
+    .persona-card select { flex: 1; }
+    .persona-card-desc { font-size: 12px; color: var(--text-2); margin-top: 10px; padding: 0 2px; }
+
+    .sess-mods { display: flex; flex-direction: column; gap: 6px; }
+    .sess-mod-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--r);
+      cursor: pointer; transition: border-color .15s;
+    }
+    .sess-mod-row.on  { border-left: 3px solid var(--blue); }
+    .sess-mod-row.off { opacity: .45; }
+    .sess-mod-row:hover { border-color: #93c5fd; }
+
+    /* Toggle switch */
+    .tog { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
+    .tog input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .tog-sl {
+      position: absolute; inset: 0;
+      background: #cbd5e1; border-radius: 18px; transition: .2s; cursor: pointer;
+    }
+    .tog-sl::before {
+      content: ''; position: absolute;
+      width: 12px; height: 12px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: .2s;
+    }
+    .tog input:checked + .tog-sl { background: var(--blue); }
+    .tog input:checked + .tog-sl::before { transform: translateX(16px); }
+
+    /* Session sidebar */
+    .s-sidebar {
+      background: var(--surface); border-left: 1px solid var(--border);
+      padding: 28px 22px; display: flex; flex-direction: column; gap: 26px;
+    }
+    .s-sidebar h3 {
+      font-size: 11px; font-weight: 700; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+    }
+
+    .tok-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .tok-fill  { height: 100%; border-radius: 3px; transition: width .3s, background .3s; background: var(--blue); }
+    .tok-lbl   { font-size: 12px; color: var(--text-2); }
+    .tok-lbl strong { color: var(--text); }
+
+    .mcp-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .mcp-row:last-child { border-bottom: none; }
+    .mcp-nm  { font-size: 13px; font-weight: 500; }
+    .mcp-sys { font-size: 11px; color: var(--text-3); }
+
+    .launch-btn {
+      width: 100%; justify-content: center;
+      padding: 11px; font-size: 14px; font-weight: 600;
+      border-radius: var(--rl); margin-top: auto;
+    }
+
+    /* ── MISC ── */
+    .divider { border: none; border-top: 1px solid var(--border); }
+    .loading { color: var(--text-3); font-size: 13px; padding: 12px 0; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+      font-size: 13px; padding: 10px 16px; border-radius: var(--r);
+      box-shadow: var(--sh-md); min-width: 220px;
+      animation: fadein .2s;
+    }
+    .toast.ok  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .toast.err { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(6px); } }
+
+    .group-label {
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+    .group-block { margin-bottom: 20px; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">
-    <div>
-      <h1>Lattice</h1>
-      <p>Federated intelligence for biologics manufacturing</p>
-    </div>
-  </div>
-  <div class="header-right">
-    <span id="status-dot"></span>
-    <span id="status-label">OpenCode not running</span>
+  <div class="brand">LATTICE</div>
+  <nav>
+    <button id="nb-marketplace" onclick="switchTab('marketplace')" class="active">Marketplace</button>
+    <button id="nb-personas"    onclick="switchTab('personas')">My Personas</button>
+    <button id="nb-session"     onclick="switchTab('session')">Session</button>
+  </nav>
+  <div class="nav-right">
+    <span id="oc-pill" class="oc-pill off">OpenCode off</span>
+    <button class="btn btn-ghost btn-sm" id="oc-stop" onclick="stopOC()" style="display:none;color:rgba(255,255,255,.6)">Stop</button>
   </div>
 </header>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('marketplace')">Marketplace</div>
-  <div class="tab"        onclick="switchTab('personas')">My Personas</div>
-  <div class="tab"        onclick="switchTab('session')" id="session-tab">Session</div>
-</div>
+<main>
 
-<!-- ── TAB 1: Marketplace ── -->
-<div class="content active" id="tab-marketplace">
-  <div class="search-row">
-    <input type="text" id="mkt-search" placeholder="Search context repos…" oninput="loadMarketplace()">
-    <select id="mkt-scope" onchange="loadMarketplace()">
-      <option value="">All scopes</option>
-      <option value="public">Public</option>
-      <option value="team">Team</option>
-    </select>
-  </div>
-  <div class="section-label">Available Context Repos</div>
-  <div class="grid" id="mkt-grid"><div class="empty">Loading…</div></div>
-</div>
-
-<!-- ── TAB 2: My Personas ── -->
-<div class="content" id="tab-personas">
-  <div class="search-row">
-    <input type="text" id="persona-search" placeholder="Search personas…" oninput="loadPersonas()">
-    <select id="persona-scope" onchange="loadPersonas()">
-      <option value="">All scopes</option>
-      <option value="public">Public</option>
-      <option value="team">Team</option>
-      <option value="private">Private</option>
-    </select>
-  </div>
-  <div class="section-label">Registered Personas</div>
-  <div id="persona-list"><div class="empty">Loading…</div></div>
-</div>
-
-<!-- ── TAB 3: Session ── -->
-<div class="content" id="tab-session">
-  <div id="no-persona" class="empty">
-    Select a persona from <strong>My Personas</strong> to configure a session.
-  </div>
-  <div id="session-body" style="display:none">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
-      <div>
-        <div style="font-size:16px; font-weight:600" id="sess-persona-name"></div>
-        <div style="font-size:12px; color:var(--text-dim)" id="sess-persona-meta"></div>
-      </div>
-      <button class="btn btn-ghost" onclick="switchTab('personas')">← Change persona</button>
+<!-- ═══════════════════════════════ MARKETPLACE ═══════════════════════════ -->
+<section id="tab-marketplace" class="tab active">
+  <div class="ph">
+    <h1>Marketplace</h1>
+    <p>Browse approved context repositories and add them to your Lattice instance.</p>
+    <div class="ph-tools">
+      <input type="search" id="mkt-q" placeholder="Search repos…" oninput="renderMarket()">
+      <select id="mkt-scope" onchange="renderMarket()">
+        <option value="">All scopes</option>
+        <option value="public">Public</option>
+        <option value="team">Team</option>
+      </select>
     </div>
+  </div>
+  <div id="mkt-grid" class="card-grid"></div>
+</section>
 
-    <div class="session-layout">
-      <div>
-        <div class="section-label" style="margin-bottom:10px">Modules — toggle for this session</div>
-        <div id="module-list"></div>
+<!-- ═══════════════════════════════ MY PERSONAS ═══════════════════════════ -->
+<section id="tab-personas" class="tab">
+  <div class="p-layout">
+
+    <!-- Sidebar -->
+    <aside class="p-sidebar">
+      <div class="p-sidebar-top">
+        <h2>Personas</h2>
+        <button class="btn btn-outline btn-sm" onclick="toggleNP()">+ New</button>
       </div>
+      <div id="persona-list" class="p-list"></div>
 
-      <div>
-        <div class="sidebar-card">
-          <div class="sidebar-title">Session Summary</div>
-          <div class="stat-row"><span class="stat-label">Enabled</span><span class="stat-val" id="s-enabled">0</span></div>
-          <div class="stat-row"><span class="stat-label">Disabled</span><span class="stat-val" id="s-disabled">0</span></div>
-          <div class="token-bar"><div class="token-fill" id="s-token-fill" style="width:0%"></div></div>
-          <div class="token-labels"><span>Context tokens</span><span id="s-tokens">~0</span></div>
+      <!-- New persona form -->
+      <div id="np-form" class="np-form" style="display:none">
+        <h3>New Persona</h3>
+        <div class="ff"><label>ID (slug)</label><input id="np-id" placeholder="my-persona"></div>
+        <div class="ff"><label>Name</label><input id="np-name" placeholder="Display name"></div>
+        <div class="ff"><label>Description</label><textarea id="np-desc" placeholder="What is this for?"></textarea></div>
+        <div class="ff">
+          <label>Scope</label>
+          <select id="np-scope">
+            <option value="private">Private</option>
+            <option value="team">Team</option>
+            <option value="public">Public</option>
+          </select>
         </div>
-
-        <div class="sidebar-card">
-          <div class="sidebar-title">MCP Servers</div>
-          <div class="mcp-row" id="mcp-row"></div>
+        <div class="ff-row">
+          <button class="btn btn-navy btn-sm" onclick="createPersona()">Create</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleNP()">Cancel</button>
         </div>
+      </div>
+    </aside>
 
-        <div class="sidebar-card">
-          <div class="sidebar-title">Model</div>
-          <div class="model-row">
-            <div class="field">
-              <label>Provider</label>
-              <select id="m-provider" onchange="updateModelInput()">
-                <option value="ollama">Ollama (local)</option>
-                <option value="openrouter">OpenRouter</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Model</label>
-              <input id="m-model" type="text" value="qwen3:8b">
-            </div>
+    <!-- Main pane -->
+    <div class="p-main" id="p-main">
+      <div class="empty-state" id="p-empty">Select a persona or create a new one.</div>
+
+      <!-- Persona detail -->
+      <div id="p-detail" style="display:none">
+        <div class="det-header">
+          <div class="det-header-top">
+            <h2 id="d-name"></h2>
+            <span id="d-scope" class="badge"></span>
+          </div>
+          <div id="d-desc" class="det-desc"></div>
+          <div class="det-actions">
+            <button class="btn btn-navy btn-sm" onclick="goSession()">Configure Session →</button>
+            <button class="btn btn-outline btn-sm" onclick="openPicker()">+ Add Modules</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePersona()">Delete</button>
           </div>
         </div>
+        <div class="mod-section" id="mod-list"></div>
+      </div>
 
-        <button class="launch-btn" id="launch-btn" onclick="launch()" disabled>Launch Session</button>
-        <div class="launch-status" id="launch-status"></div>
+      <!-- Module picker -->
+      <div id="p-picker" style="display:none" class="picker-shell">
+        <div class="picker-head">
+          <button class="btn btn-ghost btn-sm" onclick="closePicker()">← Back</button>
+          <h2>Add Modules</h2>
+        </div>
+        <div class="picker-body">
+          <div class="pk-repos" id="pk-repo-list"></div>
+          <div class="pk-mods">
+            <div class="pk-mods-top">
+              <h3 id="pk-repo-title">Select a repo</h3>
+              <button id="pk-add-all" class="btn btn-outline btn-sm" onclick="addAll()" style="display:none">Add All</button>
+            </div>
+            <div id="pk-mod-list"></div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<footer>
-  <span>Lattice POC</span>
-  <span>data stays local</span>
-</footer>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ SESSION ═══════════════════════════════ -->
+<section id="tab-session" class="tab">
+  <div class="s-layout">
+
+    <div class="s-main">
+
+      <!-- 01 Persona -->
+      <div class="step">
+        <div class="step-lbl"><span class="step-num">01</span> Select Persona</div>
+        <div class="persona-card">
+          <select id="sess-p" onchange="sessPersonaChange()" style="max-width:280px">
+            <option value="">— choose a persona —</option>
+          </select>
+          <span id="sess-scope" class="badge b-gray" style="display:none"></span>
+        </div>
+        <div id="sess-desc" class="persona-card-desc"></div>
+      </div>
+
+      <!-- 02 Modules -->
+      <div class="step">
+        <div class="step-lbl"><span class="step-num">02</span> Configure Modules</div>
+        <div id="sess-mods" class="sess-mods">
+          <p class="loading">Select a persona above.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="s-sidebar">
+
+      <div>
+        <h3>Token Budget</h3>
+        <div class="tok-track"><div class="tok-fill" id="tok-fill" style="width:0%"></div></div>
+        <div class="tok-lbl"><strong id="tok-used">0</strong> / 2,000 tokens</div>
+      </div>
+
+      <div>
+        <h3>MCP Servers</h3>
+        <div id="sess-mcps"></div>
+      </div>
+
+      <div>
+        <h3>Model</h3>
+        <input id="sess-model" placeholder="ollama/qwen3:8b" style="width:100%">
+      </div>
+
+      <button class="btn btn-navy launch-btn" onclick="launch()">Launch Session →</button>
+
+    </aside>
+  </div>
+</section>
+
+</main>
 
 <script>
-const TOKEN_MAX = 8000;
-let state = {
-  activeTab: 'marketplace',
-  activePersona: null,
-  modules: [],           // full module list for active persona
-  enabledModules: new Set(),
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
   mcps: [],
-  enabledMcps: new Set(),
+  marketRepos: [],
+  contextRepos: [],
+  personas: [],
+
+  // personas tab
+  activeId: null,
+  personaMods: [],     // modules in active persona (with repo_name, repo_id)
+
+  // picker
+  pickRepoId: null,
+  pickRepoMods: [],    // all modules in picker's selected repo
+
+  // session
+  sessId: null,
+  sessMods: [],
+  sessOn: new Set(),   // persona_module IDs enabled for this session
+  sessMcps: new Set(),
 };
 
-// ── Tab switching ──────────────────────────────────────────────────────────
-
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['marketplace','personas','session'][i] === name);
-  });
-  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-  document.getElementById(`tab-${name}`).classList.add('active');
-  state.activeTab = name;
-  if (name === 'marketplace') loadMarketplace();
-  if (name === 'personas')    loadPersonas();
-  if (name === 'session')     renderSession();
+// ── API ───────────────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const o = { method, headers: {} };
+  if (body !== undefined) {
+    o.body = JSON.stringify(body);
+    o.headers['Content-Type'] = 'application/json';
+  }
+  const r = await fetch(path, o);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(e.detail || r.statusText);
+  }
+  return r.json();
 }
 
-// ── Status polling ─────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function typeBadge(t) {
+  const m = { skill: 'b-blue', blueprint: 'b-purple', agent: 'b-green', command: 'b-amber' };
+  return `<span class="badge ${m[t] || 'b-gray'}">${t || 'skill'}</span>`;
+}
+function scopeBadge(s) {
+  const m = { private: 'b-gray', team: 'b-blue', public: 'b-green' };
+  return `<span class="badge ${m[s] || 'b-gray'}">${s}</span>`;
+}
+function fmt(n) { return n ? n.toLocaleString() + 't' : ''; }
 
+function toast(msg, ok = true) {
+  const el = document.createElement('div');
+  el.className = `toast ${ok ? 'ok' : 'err'}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.getElementById(`nb-${name}`).classList.add('active');
+  if (name === 'marketplace') loadMarket();
+  if (name === 'personas')    loadPersonas();
+  if (name === 'session')     initSession();
+}
+
+// ── Status ────────────────────────────────────────────────────────────────────
 async function pollStatus() {
   try {
-    const r = await fetch('/api/status');
-    const d = await r.json();
-    const dot = document.getElementById('status-dot');
-    const lbl = document.getElementById('status-label');
-    if (d.opencode_running) {
-      dot.className = 'on';
-      lbl.textContent = `OpenCode running (pid ${d.pid})`;
-    } else {
-      dot.className = '';
-      lbl.textContent = 'OpenCode not running';
-    }
-  } catch {}
+    const d = await api('GET', '/api/status');
+    const pill = document.getElementById('oc-pill');
+    const stop = document.getElementById('oc-stop');
+    pill.className = `oc-pill ${d.opencode_running ? 'on' : 'off'}`;
+    pill.textContent = d.opencode_running ? `OpenCode · pid ${d.pid}` : 'OpenCode off';
+    stop.style.display = d.opencode_running ? '' : 'none';
+  } catch (_) {}
+}
+async function stopOC() { await api('POST', '/api/stop'); pollStatus(); }
+
+// ── Marketplace ───────────────────────────────────────────────────────────────
+async function loadMarket() {
+  S.marketRepos = await api('GET', '/api/marketplace');
+  renderMarket();
 }
 
-// ── Marketplace ────────────────────────────────────────────────────────────
+function renderMarket() {
+  const q = document.getElementById('mkt-q').value.toLowerCase();
+  const sc = document.getElementById('mkt-scope').value;
+  let repos = S.marketRepos;
+  if (q)  repos = repos.filter(r => `${r.name} ${r.description} ${r.owner}`.toLowerCase().includes(q));
+  if (sc) repos = repos.filter(r => r.scope === sc);
 
-async function loadMarketplace() {
-  const search = document.getElementById('mkt-search').value;
-  const scope  = document.getElementById('mkt-scope').value;
-  const params = new URLSearchParams();
-  if (search) params.set('search', search);
-  if (scope)  params.set('scope', scope);
-  const r = await fetch('/api/marketplace?' + params);
-  const repos = await r.json();
-  const grid = document.getElementById('mkt-grid');
-  if (!repos.length) { grid.innerHTML = '<div class="empty">No repos found.</div>'; return; }
-  grid.innerHTML = repos.map(repo => `
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">${repo.name}</span>
-        <div style="display:flex;gap:5px;flex-shrink:0">
-          ${repo.verified ? '<span class="badge badge-verified">Verified</span>' : ''}
-          <span class="badge badge-${repo.scope}">${repo.scope}</span>
+  document.getElementById('mkt-grid').innerHTML = repos.length
+    ? repos.map(r => `
+      <div class="card">
+        <div class="card-top">
+          <h3>${r.name}</h3>
+        </div>
+        <div class="card-meta">
+          <span>${r.owner}</span>·
+          ${scopeBadge(r.scope)}
+          ${r.verified ? '<span class="badge b-check">✓ Verified</span>' : ''}
+        </div>
+        <p>${r.description || ''}</p>
+        <div class="card-foot">
+          ${r.added
+            ? `<span class="badge b-green">✓ Added</span>`
+            : `<button class="btn btn-navy btn-sm" onclick='addRepo(${JSON.stringify({id:r.id,name:r.name,description:r.description||"",repo_url:r.repo_url})})'>Add to Lattice</button>`
+          }
         </div>
       </div>
-      <div class="card-desc">${repo.description || ''}</div>
-      <div class="card-footer">
-        <span style="font-size:11px;color:var(--text-dim)">${repo.owner}</span>
-        ${repo.registered
-          ? '<span style="font-size:12px;color:var(--green)">✓ Added</span>'
-          : `<button class="btn btn-primary" onclick="addFromMarketplace('${repo.id}','${repo.name}','${escape(repo.description||'')}','${repo.repo_url}','${repo.scope}')">Add to Lattice</button>`
-        }
-      </div>
-    </div>
-  `).join('');
+    `).join('')
+    : '<p class="loading" style="grid-column:1/-1;padding:32px">No repos found.</p>';
 }
 
-async function addFromMarketplace(id, name, desc, repoUrl, scope) {
-  const slug = id.split('/')[1] || id.replace(/\W/g, '-');
-  const r = await fetch('/api/personas', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ id: slug, name, description: unescape(desc), repo_url: repoUrl, scope }),
-  });
-  const d = await r.json();
-  if (!r.ok) { alert(d.detail || 'Failed to add persona'); return; }
-  await loadMarketplace();
-  switchTab('personas');
+async function addRepo({ id, name, description, repo_url }) {
+  try {
+    await api('POST', '/api/repos', { id, name, description, repo_url, branch: 'main' });
+    toast(`"${name}" added — syncing in background`);
+    S.marketRepos = await api('GET', '/api/marketplace');
+    renderMarket();
+  } catch (e) { toast(e.message, false); }
 }
 
-// ── My Personas ────────────────────────────────────────────────────────────
-
+// ── My Personas ───────────────────────────────────────────────────────────────
 async function loadPersonas() {
-  const search = document.getElementById('persona-search').value;
-  const scope  = document.getElementById('persona-scope').value;
-  const params = new URLSearchParams();
-  if (search) params.set('search', search);
-  if (scope)  params.set('scope', scope);
-  const r = await fetch('/api/personas?' + params);
-  const personas = await r.json();
-  const list = document.getElementById('persona-list');
-  if (!personas.length) { list.innerHTML = '<div class="empty">No personas registered. Browse the Marketplace to add one.</div>'; return; }
-  list.innerHTML = personas.map(p => {
-    const synced = p.last_synced ? `synced ${relativeTime(p.last_synced)}` : (p.repo_url ? 'never synced' : 'local');
-    return `
-    <div class="persona-row">
-      <div class="persona-info">
-        <div class="persona-name">${p.name}</div>
-        <div class="persona-desc">${p.description || ''}</div>
-        <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
-          <span class="badge badge-${p.scope}">${p.scope}</span>
-          <span class="sync-label">${synced}</span>
-          ${p.repo_url ? `<span class="sync-label">· <a href="${p.repo_url}" target="_blank" style="color:var(--accent);text-decoration:none">${p.repo_url.replace('https://github.com/','')}</a></span>` : ''}
+  [S.personas, S.contextRepos] = await Promise.all([
+    api('GET', '/api/personas'),
+    api('GET', '/api/repos'),
+  ]);
+  renderPList();
+  if (S.activeId) selectPersona(S.activeId);
+}
+
+function renderPList() {
+  document.getElementById('persona-list').innerHTML = S.personas.length
+    ? S.personas.map(p => `
+      <div class="p-item ${p.id === S.activeId ? 'active' : ''}" onclick="selectPersona('${p.id}')">
+        <div class="p-item-info">
+          <div class="p-item-name">${p.name}</div>
+          <div class="p-item-meta">${p.scope} · ${p.module_count} module${p.module_count !== 1 ? 's' : ''}</div>
         </div>
       </div>
-      <div class="persona-actions">
-        ${p.repo_url ? `<button class="btn btn-ghost" onclick="syncPersona('${p.id}')">Sync</button>` : ''}
-        <button class="btn btn-primary" onclick="selectPersona('${p.id}')">Configure</button>
-        <button class="btn btn-danger" onclick="deletePersona('${p.id}')">Remove</button>
-      </div>
-    </div>
-    `;
-  }).join('');
+    `).join('')
+    : '<p class="loading" style="padding:16px 20px">No personas yet.</p>';
 }
 
-async function syncPersona(id) {
-  await fetch(`/api/personas/${id}/sync`, { method: 'POST' });
-  setTimeout(loadPersonas, 1500);
+function toggleNP() {
+  const el = document.getElementById('np-form');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-async function deletePersona(id) {
-  if (!confirm(`Remove persona "${id}"?`)) return;
-  await fetch(`/api/personas/${id}`, { method: 'DELETE' });
-  loadPersonas();
+async function createPersona() {
+  const id = document.getElementById('np-id').value.trim();
+  const name = document.getElementById('np-name').value.trim();
+  const description = document.getElementById('np-desc').value.trim();
+  const scope = document.getElementById('np-scope').value;
+  if (!id || !name) return toast('ID and name are required', false);
+  try {
+    await api('POST', '/api/personas', { id, name, description, scope });
+    toggleNP();
+    ['np-id', 'np-name', 'np-desc'].forEach(f => document.getElementById(f).value = '');
+    S.personas = await api('GET', '/api/personas');
+    renderPList();
+    selectPersona(id);
+  } catch (e) { toast(e.message, false); }
 }
 
 async function selectPersona(id) {
-  const r = await fetch(`/api/personas/${id}`);
-  const d = await r.json();
-  state.activePersona = d.persona;
-  state.modules = d.modules;
+  S.activeId = id;
+  closePicker(false);
+  renderPList();
 
-  // Layer 1 defaults from persona
-  state.enabledModules = new Set(
-    d.modules.filter(m => m.enabled_by_default).map(m => m.path)
-  );
+  const d = await api('GET', `/api/personas/${id}`);
+  S.personaMods = d.modules;
+  const p = d.persona;
 
-  // MCPs: load dynamically from /api/mcps
-  const mR = await fetch('/api/mcps');
-  const mcpList = await mR.json();
-  state.mcps = mcpList.map(m => m.id);
-  state.enabledMcps = new Set(state.mcps);
+  document.getElementById('d-name').textContent = p.name;
+  document.getElementById('d-desc').textContent = p.description || '';
+  const sb = document.getElementById('d-scope');
+  sb.className = `badge ${p.scope === 'team' ? 'b-blue' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
+  sb.textContent = p.scope;
 
-  switchTab('session');
+  renderModList();
+  show('p-empty', false); show('p-detail', true); show('p-picker', false);
 }
 
-// ── Session ────────────────────────────────────────────────────────────────
-
-function renderSession() {
-  const p = state.activePersona;
-  if (!p) {
-    document.getElementById('no-persona').style.display = '';
-    document.getElementById('session-body').style.display = 'none';
+function renderModList() {
+  const el = document.getElementById('mod-list');
+  if (!S.personaMods.length) {
+    el.innerHTML = '<p style="color:var(--text-3);font-size:13px">No modules yet. Click "+ Add Modules" to add from any repo.</p>';
     return;
   }
-  document.getElementById('no-persona').style.display = 'none';
-  document.getElementById('session-body').style.display = '';
-
-  document.getElementById('sess-persona-name').textContent = p.name;
-  const synced = p.last_synced ? `synced ${relativeTime(p.last_synced)}` : 'local';
-  document.getElementById('sess-persona-meta').textContent =
-    `${p.scope} · ${synced}${p.repo_url ? ' · ' + p.repo_url.replace('https://github.com/','') : ''}`;
-
-  // Modules
-  const list = document.getElementById('module-list');
-  const typeOrder = { skill: 0, blueprint: 1, agent: 2, command: 3 };
-  const sorted = [...state.modules].sort((a,b) =>
-    (typeOrder[a.type]||9) - (typeOrder[b.type]||9) || a.name.localeCompare(b.name)
-  );
-
-  let lastType = null;
-  list.innerHTML = sorted.map(m => {
-    const on = state.enabledModules.has(m.path);
-    const typeLabel = lastType !== m.type
-      ? `<div class="section-label" style="margin-top:${lastType?'14px':'0'};margin-bottom:6px">${m.type}s</div>`
-      : '';
-    lastType = m.type;
-    return `
-      ${typeLabel}
-      <div class="module-item ${on?'on':''}" onclick="toggleModule('${m.path}')">
-        <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();toggleModule('${m.path}')">
-        <div class="module-body">
-          <div class="module-name">${m.name}</div>
-          <div class="module-path">${m.path}</div>
-          ${m.description ? `<div style="font-size:11px;color:var(--text-dim);margin-top:3px">${m.description}</div>` : ''}
-          ${m.tokens ? `<div class="module-tokens">~${m.tokens} tokens</div>` : ''}
-        </div>
+  // Group by repo
+  const g = {};
+  for (const m of S.personaMods) {
+    if (!g[m.repo_id]) g[m.repo_id] = { name: m.repo_name, mods: [] };
+    g[m.repo_id].mods.push(m);
+  }
+  el.innerHTML = Object.entries(g).map(([, grp]) => `
+    <div class="repo-group">
+      <div class="rg-header">
+        <span class="rg-name">${grp.name}</span>
+        <span class="rg-count">${grp.mods.length} file${grp.mods.length !== 1 ? 's' : ''}</span>
       </div>
-    `;
-  }).join('');
+      ${grp.mods.map(m => `
+        <div class="mod-row">
+          ${typeBadge(m.type)}
+          <div class="mod-info">
+            <div class="mod-name">${m.name}</div>
+            ${m.description ? `<div class="mod-desc">${m.description}</div>` : ''}
+          </div>
+          <span class="mod-tok">${fmt(m.tokens)}</span>
+          <button class="btn btn-ghost btn-icon" title="Remove" onclick="removeMod(${m.id})">✕</button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
 
-  // MCPs
-  const mcpRow = document.getElementById('mcp-row');
-  mcpRow.innerHTML = state.mcps.map(mcp => `
-    <div class="mcp-toggle ${state.enabledMcps.has(mcp)?'on':''}" onclick="toggleMcp('${mcp}')">
-      <input type="checkbox" ${state.enabledMcps.has(mcp)?'checked':''} onclick="event.stopPropagation();toggleMcp('${mcp}')">
-      ${mcp}
+async function removeMod(mid) {
+  await api('DELETE', `/api/personas/${S.activeId}/modules/${mid}`);
+  S.personaMods = S.personaMods.filter(m => m.id !== mid);
+  renderModList();
+  const p = S.personas.find(p => p.id === S.activeId);
+  if (p) { p.module_count--; renderPList(); }
+  toast('Removed');
+}
+
+async function deletePersona() {
+  const name = S.personas.find(p => p.id === S.activeId)?.name;
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  await api('DELETE', `/api/personas/${S.activeId}`);
+  S.activeId = null;
+  S.personaMods = [];
+  S.personas = await api('GET', '/api/personas');
+  renderPList();
+  show('p-empty', true); show('p-detail', false); show('p-picker', false);
+  toast('Persona deleted');
+}
+
+function goSession() { S.sessId = S.activeId; switchTab('session'); }
+
+// ── Module Picker ─────────────────────────────────────────────────────────────
+function openPicker() {
+  show('p-detail', false); show('p-picker', true);
+  S.pickRepoId = null;
+
+  document.getElementById('pk-repo-list').innerHTML = S.contextRepos.map(r => `
+    <div class="pk-repo-item" data-id="${r.id}" onclick="pickRepo('${r.id}', '${r.name.replace(/'/g,"\\'")}')">
+      <div class="pk-repo-name">${r.name}</div>
+      <div class="pk-repo-count">${r.module_count} modules</div>
     </div>
   `).join('');
 
-  updateStats();
+  if (S.contextRepos.length) pickRepo(S.contextRepos[0].id, S.contextRepos[0].name);
 }
 
-function toggleModule(path) {
-  if (state.enabledModules.has(path)) state.enabledModules.delete(path);
-  else state.enabledModules.add(path);
-  renderSession();
+function closePicker(showDetail = true) {
+  show('p-picker', false);
+  if (showDetail && S.activeId) show('p-detail', true);
 }
 
-function toggleMcp(name) {
-  if (state.enabledMcps.has(name)) state.enabledMcps.delete(name);
-  else state.enabledMcps.add(name);
-  renderSession();
+async function pickRepo(repoId, repoName) {
+  S.pickRepoId = repoId;
+  document.querySelectorAll('.pk-repo-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === repoId);
+  });
+  document.getElementById('pk-repo-title').textContent = repoName;
+  document.getElementById('pk-add-all').style.display = '';
+
+  const d = await api('GET', `/api/repos/${repoId}`);
+  S.pickRepoMods = d.modules;
+  const inPersona = new Set(S.personaMods.filter(m => m.repo_id === repoId).map(m => m.path));
+
+  document.getElementById('pk-mod-list').innerHTML = d.modules.length
+    ? d.modules.map(m => {
+        const chk = inPersona.has(m.path);
+        return `
+          <div class="pk-mod-row ${chk ? 'checked' : ''}" onclick="togglePickMod('${repoId}','${m.path.replace(/'/g,"\\'")}',this)">
+            <input type="checkbox" ${chk ? 'checked' : ''} onclick="event.stopPropagation();togglePickMod('${repoId}','${m.path.replace(/'/g,"\\'")}',this.parentElement)">
+            ${typeBadge(m.type)}
+            <div class="mod-info">
+              <div class="mod-name">${m.name}</div>
+              ${m.description ? `<div class="mod-desc">${m.description}</div>` : ''}
+            </div>
+            <span class="mod-tok">${fmt(m.tokens)}</span>
+          </div>
+        `;
+      }).join('')
+    : '<p class="loading">No modules in this repo.</p>';
 }
 
-function updateStats() {
-  const on = state.enabledModules.size;
-  const off = state.modules.length - on;
-  document.getElementById('s-enabled').textContent = on;
-  document.getElementById('s-disabled').textContent = off;
+async function togglePickMod(repoId, path, rowEl) {
+  const existing = S.personaMods.find(m => m.repo_id === repoId && m.path === path);
+  const cb = rowEl.querySelector('input[type=checkbox]');
+  try {
+    if (existing) {
+      await api('DELETE', `/api/personas/${S.activeId}/modules/${existing.id}`);
+      S.personaMods = S.personaMods.filter(m => !(m.repo_id === repoId && m.path === path));
+      rowEl.classList.remove('checked');
+      if (cb) cb.checked = false;
+      const p = S.personas.find(p => p.id === S.activeId);
+      if (p) p.module_count--;
+    } else {
+      await api('POST', `/api/personas/${S.activeId}/modules`, { repo_id: repoId, path });
+      const d = await api('GET', `/api/personas/${S.activeId}`);
+      S.personaMods = d.modules;
+      rowEl.classList.add('checked');
+      if (cb) cb.checked = true;
+      const p = S.personas.find(p => p.id === S.activeId);
+      if (p) p.module_count = S.personaMods.length;
+    }
+    renderPList();
+  } catch (e) { toast(e.message, false); }
+}
 
-  let tokens = 300; // base context.md
-  for (const path of state.enabledModules) {
-    const m = state.modules.find(x => x.path === path);
-    if (m) tokens += m.tokens || 0;
+async function addAll() {
+  if (!S.pickRepoId) return;
+  try {
+    const r = await api('POST', `/api/personas/${S.activeId}/modules`, { repo_id: S.pickRepoId, path: '', add_all: true });
+    toast(`${r.count} module${r.count !== 1 ? 's' : ''} added`);
+    const d = await api('GET', `/api/personas/${S.activeId}`);
+    S.personaMods = d.modules;
+    const p = S.personas.find(p => p.id === S.activeId);
+    if (p) p.module_count = S.personaMods.length;
+    renderPList();
+    const repo = S.contextRepos.find(r => r.id === S.pickRepoId);
+    if (repo) pickRepo(S.pickRepoId, repo.name);
+  } catch (e) { toast(e.message, false); }
+}
+
+// ── Session ───────────────────────────────────────────────────────────────────
+async function initSession() {
+  [S.personas, S.mcps] = await Promise.all([api('GET', '/api/personas'), api('GET', '/api/mcps')]);
+  S.sessMcps = new Set(S.mcps.map(m => m.id));
+
+  const sel = document.getElementById('sess-p');
+  sel.innerHTML = '<option value="">— choose a persona —</option>' +
+    S.personas.map(p => `<option value="${p.id}" ${p.id === S.sessId ? 'selected' : ''}>${p.name}</option>`).join('');
+
+  document.getElementById('sess-mcps').innerHTML = S.mcps.map(m => `
+    <div class="mcp-row">
+      <div><div class="mcp-nm">${m.id}</div><div class="mcp-sys">${m.systems.join(', ')}</div></div>
+      <label class="tog">
+        <input type="checkbox" checked onchange="toggleMcp('${m.id}',this.checked)">
+        <span class="tog-sl"></span>
+      </label>
+    </div>
+  `).join('');
+
+  if (S.sessId) sessPersonaChange();
+}
+
+async function sessPersonaChange() {
+  S.sessId = document.getElementById('sess-p').value;
+  const p = S.personas.find(p => p.id === S.sessId);
+  const desc = document.getElementById('sess-desc');
+  const scope = document.getElementById('sess-scope');
+
+  if (!S.sessId || !p) {
+    desc.textContent = '';
+    scope.style.display = 'none';
+    document.getElementById('sess-mods').innerHTML = '<p class="loading">Select a persona above.</p>';
+    updateTok();
+    return;
   }
-  document.getElementById('s-tokens').textContent = `~${tokens.toLocaleString()}`;
-  document.getElementById('s-token-fill').style.width = Math.min(tokens/TOKEN_MAX*100,100)+'%';
 
-  document.getElementById('launch-btn').disabled = state.enabledMcps.size === 0;
+  desc.textContent = p.description || '';
+  scope.style.display = '';
+  scope.className = `badge ${p.scope === 'team' ? 'b-blue' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
+  scope.textContent = p.scope;
+
+  const d = await api('GET', `/api/personas/${S.sessId}`);
+  S.sessMods = d.modules;
+  S.sessOn = new Set(d.modules.filter(m => m.enabled).map(m => m.id));
+  renderSessMods();
+  updateTok();
 }
 
-function updateModelInput() {
-  const p = document.getElementById('m-provider').value;
-  document.getElementById('m-model').value = p === 'ollama' ? 'qwen3:8b' : 'qwen/qwen-2.5-72b-instruct';
+function renderSessMods() {
+  const el = document.getElementById('sess-mods');
+  if (!S.sessMods.length) {
+    el.innerHTML = '<p style="color:var(--text-3);font-size:13px">This persona has no modules. Add some in My Personas.</p>';
+    return;
+  }
+  const g = {};
+  for (const m of S.sessMods) {
+    if (!g[m.repo_id]) g[m.repo_id] = { name: m.repo_name, mods: [] };
+    g[m.repo_id].mods.push(m);
+  }
+  el.innerHTML = Object.values(g).map(grp => `
+    <div class="group-block">
+      <div class="group-label">${grp.name}</div>
+      ${grp.mods.map(m => {
+        const on = S.sessOn.has(m.id);
+        return `
+          <div class="sess-mod-row ${on ? 'on' : 'off'}" onclick="togSess(${m.id})">
+            <label class="tog" onclick="event.stopPropagation()">
+              <input type="checkbox" ${on ? 'checked' : ''} onchange="togSess(${m.id})">
+              <span class="tog-sl"></span>
+            </label>
+            ${typeBadge(m.type)}
+            <div class="mod-info">
+              <div class="mod-name">${m.name}</div>
+              ${m.description ? `<div class="mod-desc">${m.description}</div>` : ''}
+            </div>
+            <span class="mod-tok">${fmt(m.tokens)}</span>
+          </div>`;
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function togSess(mid) {
+  if (S.sessOn.has(mid)) S.sessOn.delete(mid); else S.sessOn.add(mid);
+  renderSessMods();
+  updateTok();
+}
+
+function toggleMcp(id, on) { if (on) S.sessMcps.add(id); else S.sessMcps.delete(id); }
+
+function updateTok() {
+  const total = S.sessMods.filter(m => S.sessOn.has(m.id)).reduce((s, m) => s + (m.tokens || 0), 0);
+  const pct = Math.min(100, (total / 2000) * 100);
+  const fill = document.getElementById('tok-fill');
+  fill.style.width = `${pct}%`;
+  fill.style.background = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--blue)';
+  document.getElementById('tok-used').textContent = total.toLocaleString();
 }
 
 async function launch() {
-  const btn = document.getElementById('launch-btn');
-  const msg = document.getElementById('launch-status');
-  btn.disabled = true;
-  msg.className = 'launch-status';
-  msg.textContent = 'Writing config and starting OpenCode…';
-
-  const provider = document.getElementById('m-provider').value;
-  const model    = `${provider}/${document.getElementById('m-model').value}`;
-
+  if (!S.sessId) return toast('Select a persona first', false);
+  if (!S.sessOn.size) return toast('Enable at least one module', false);
+  const model = document.getElementById('sess-model').value.trim();
   try {
-    const r = await fetch('/api/launch', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        persona_id:      state.activePersona.id,
-        enabled_modules: [...state.enabledModules],
-        mcps:            [...state.enabledMcps],
-        model,
-      }),
+    const d = await api('POST', '/api/launch', {
+      persona_id: S.sessId,
+      enabled_module_ids: [...S.sessOn],
+      enabled_mcps: [...S.sessMcps],
+      model,
     });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.detail || 'Launch failed');
-    msg.className = 'launch-status ok';
-    msg.textContent = 'OpenCode started — redirecting…';
-    setTimeout(() => { window.location.href = d.redirect; }, 1200);
-  } catch(e) {
-    msg.className = 'launch-status err';
-    msg.textContent = e.message;
-    btn.disabled = false;
-  }
+    toast('Session launched — opening OpenCode');
+    setTimeout(() => window.open(d.redirect, '_blank'), 800);
+    pollStatus();
+  } catch (e) { toast(e.message, false); }
 }
 
-// ── Utilities ──────────────────────────────────────────────────────────────
-
-function relativeTime(iso) {
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60)   return 'just now';
-  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
-  if (diff < 86400)return `${Math.round(diff/3600)}h ago`;
-  return `${Math.round(diff/86400)}d ago`;
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+function show(id, visible) {
+  document.getElementById(id).style.display = visible ? '' : 'none';
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
-
-window.addEventListener('DOMContentLoaded', () => {
-  loadMarketplace();
-  pollStatus();
-  setInterval(pollStatus, 6000);
-});
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadMarket();
+pollStatus();
+setInterval(pollStatus, 10000);
 </script>
 </body>
 </html>

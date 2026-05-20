@@ -296,98 +296,101 @@ def seed_context():
     db_path = DB_DIR / "context.db"
     db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript((SEED_DIR / "context.sql").read_text())
 
-    # Marketplace — approved context repos
+    # Marketplace — approved repos users can discover and add
     marketplace = [
-        (
-            "lattice-hub/qc-analyst-bundle",
-            "QC Analyst Bundle",
-            "LIMS analysis, batch release, and deviation investigation skills for QC teams in biologics manufacturing.",
-            "https://github.com/lattice-hub/qc-analyst-bundle.git",
-            "lattice-hub", "public", 1, days_ago(90),
-        ),
-        (
-            "lattice-hub/clinical-signal-pack",
-            "Clinical Signal Pack",
-            "Cross-system safety signal detection linking CTMS adverse events to batch quality and PK data.",
-            "https://github.com/lattice-hub/clinical-signal-pack.git",
-            "lattice-hub", "public", 1, days_ago(60),
-        ),
-        (
-            "lattice-hub/tech-transfer-bundle",
-            "Tech Transfer Bundle",
-            "Lab-to-manufacturing comparison workflows. Assay bridging, yield gap analysis, process parameter drift.",
-            "https://github.com/lattice-hub/tech-transfer-bundle.git",
-            "lattice-hub", "public", 1, days_ago(45),
-        ),
-        (
-            "acme-bio/regulatory-readiness",
-            "Regulatory Readiness Pack",
-            "BLA/IND submission support: process characterization aggregation, missing data detection, deviation summary.",
-            "https://github.com/acme-bio/regulatory-readiness.git",
-            "acme-bio", "team", 0, days_ago(30),
-        ),
-        (
-            "acme-bio/capa-tracker",
-            "CAPA Tracker",
-            "Overdue CAPA detection, owner summary, and deviation pattern analysis across products.",
-            "https://github.com/acme-bio/capa-tracker.git",
-            "acme-bio", "team", 0, days_ago(20),
-        ),
+        ("lattice-hub/qc-analyst-bundle",    "QC Analyst Bundle",
+         "LIMS analysis, batch release, and deviation investigation skills for QC teams in biologics manufacturing.",
+         "https://github.com/lattice-hub/qc-analyst-bundle.git",    "lattice-hub", "public", 1, days_ago(90)),
+        ("lattice-hub/clinical-signal-pack", "Clinical Signal Pack",
+         "Cross-system safety signal detection linking CTMS adverse events to batch quality and PK data.",
+         "https://github.com/lattice-hub/clinical-signal-pack.git", "lattice-hub", "public", 1, days_ago(60)),
+        ("lattice-hub/tech-transfer-bundle", "Tech Transfer Bundle",
+         "Lab-to-manufacturing comparison workflows. Assay bridging, yield gap analysis, process parameter drift.",
+         "https://github.com/lattice-hub/tech-transfer-bundle.git", "lattice-hub", "public", 1, days_ago(45)),
+        ("acme-bio/regulatory-readiness",    "Regulatory Readiness Pack",
+         "BLA/IND submission support: process characterization aggregation, missing data detection, deviation summary.",
+         "https://github.com/acme-bio/regulatory-readiness.git",    "acme-bio",    "team",   0, days_ago(30)),
+        ("acme-bio/capa-tracker",            "CAPA Tracker",
+         "Overdue CAPA detection, owner summary, and deviation pattern analysis across products.",
+         "https://github.com/acme-bio/capa-tracker.git",            "acme-bio",    "team",   0, days_ago(20)),
     ]
-    conn.executemany(
-        "INSERT INTO marketplace_repos VALUES (?,?,?,?,?,?,?,?)",
-        marketplace,
-    )
+    conn.executemany("INSERT INTO marketplace_repos VALUES (?,?,?,?,?,?,?,?)", marketplace)
 
-    # Local default persona — points to the registry/ directory in this repo
+    # Context repos — repos registered locally (browsable, syncable)
+    # 'local' is the built-in registry (always present, not deleteable)
+    # Others are POC stand-ins showing the multi-repo concept (same local_path for now)
     registry_path = str(ROOT / "registry")
-    personas = [
-        (
-            "dev-default",
-            "Dev Default",
-            "All locally available skills and blueprints. Use for exploration and development.",
-            None, "main", "private", "local",
-            None, None, registry_path, days_ago(0),
-        ),
-        (
-            "qc-analyst",
-            "QC Analyst",
-            "QC-focused persona: LIMS analysis and batch release. Sourced from lattice-hub/qc-analyst-bundle (local copy).",
-            "https://github.com/lattice-hub/qc-analyst-bundle.git",
-            "main", "team", "local",
-            None, None, registry_path, days_ago(0),
-        ),
+    context_repos = [
+        ("local",              "Local Registry",      "Built-in skills and blueprints shipped with Lattice.",
+         None, "main", registry_path, None, None, days_ago(0)),
+        ("qc-analyst-bundle",  "QC Analyst Bundle",   "LIMS + batch release bundle from lattice-hub.",
+         "https://github.com/lattice-hub/qc-analyst-bundle.git",
+         "main", registry_path, None, None, days_ago(0)),
+        ("tech-transfer-bundle","Tech Transfer Bundle","Lab-to-manufacturing comparison workflows.",
+         "https://github.com/lattice-hub/tech-transfer-bundle.git",
+         "main", registry_path, None, None, days_ago(0)),
+    ]
+    conn.executemany("INSERT INTO context_repos VALUES (?,?,?,?,?,?,?,?,?)", context_repos)
+
+    # Repo modules — individual files available in each repo
+    repo_modules = [
+        # local registry
+        ("local", "skills/lims-analysis.md",              "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400),
+        ("local", "skills/qms-investigation.md",           "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450),
+        ("local", "blueprints/deviation-investigation.md", "blueprint", "Deviation Investigation", "Cross-system deviation + LIMS correlation workflow",        600),
+        ("local", "blueprints/batch-release.md",           "blueprint", "Batch Release",           "Go/no-go release decision with spec comparison table",      550),
+        # qc-analyst-bundle (POC: same files, different "source" for demo purposes)
+        ("qc-analyst-bundle", "skills/lims-analysis.md",              "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400),
+        ("qc-analyst-bundle", "blueprints/batch-release.md",          "blueprint", "Batch Release",           "Go/no-go release decision with spec comparison table",      550),
+        # tech-transfer-bundle
+        ("tech-transfer-bundle", "blueprints/deviation-investigation.md", "blueprint", "Deviation Investigation", "Cross-system deviation + LIMS correlation workflow", 600),
+        ("tech-transfer-bundle", "blueprints/batch-release.md",           "blueprint", "Batch Release",           "Go/no-go release decision with spec comparison table", 550),
     ]
     conn.executemany(
-        "INSERT INTO personas VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        personas,
+        "INSERT INTO repo_modules(repo_id, path, type, name, description, tokens) VALUES (?,?,?,?,?,?)",
+        repo_modules,
     )
 
-    # Modules for dev-default (all registry files)
-    dev_modules = [
-        ("dev-default", "skills/lims-analysis.md",          "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
-        ("dev-default", "skills/qms-investigation.md",       "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
-        ("dev-default", "blueprints/deviation-investigation.md","blueprint","Deviation Investigation","Cross-system deviation + LIMS correlation workflow",       600, 1),
-        ("dev-default", "blueprints/batch-release.md",       "blueprint", "Batch Release",          "Go/no-go release decision with spec comparison table",      550, 1),
+    # Personas — named bundles, no single repo
+    personas = [
+        ("dev-default", "Dev Default",
+         "All locally available skills and blueprints. Use for exploration and development.",
+         "private", "local", days_ago(0)),
+        ("qc-analyst",  "QC Analyst",
+         "QC-focused: LIMS analysis from qc-analyst-bundle, QMS investigation from local, batch release from both.",
+         "team", "local", days_ago(0)),
     ]
-    # Modules for qc-analyst (subset — no deviation investigation blueprint to keep tokens lean)
-    qc_modules = [
-        ("qc-analyst",  "skills/lims-analysis.md",           "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
-        ("qc-analyst",  "skills/qms-investigation.md",        "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
-        ("qc-analyst",  "blueprints/batch-release.md",        "blueprint", "Batch Release",          "Go/no-go release decision with spec comparison table",      550, 1),
-        ("qc-analyst",  "blueprints/deviation-investigation.md","blueprint","Deviation Investigation","Cross-system deviation + LIMS correlation workflow",       600, 0),
+    conn.executemany("INSERT INTO personas VALUES (?,?,?,?,?,?)", personas)
+
+    # Persona modules — per-file entries, each linked to a specific repo
+    # This shows how one persona can mix files from multiple repos granularly
+    persona_modules = [
+        # dev-default: all 4 local files
+        ("dev-default", "local", "skills/lims-analysis.md",              "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
+        ("dev-default", "local", "skills/qms-investigation.md",           "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
+        ("dev-default", "local", "blueprints/deviation-investigation.md", "blueprint", "Deviation Investigation", "Cross-system deviation + LIMS correlation workflow",        600, 1),
+        ("dev-default", "local", "blueprints/batch-release.md",           "blueprint", "Batch Release",           "Go/no-go release decision with spec comparison table",      550, 1),
+        # qc-analyst: granular mix across repos
+        #   - QMS Investigation from local
+        #   - LIMS Analysis + Batch Release from qc-analyst-bundle
+        #   - Deviation Investigation from tech-transfer-bundle (disabled by default)
+        ("qc-analyst", "local",               "skills/qms-investigation.md",           "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
+        ("qc-analyst", "qc-analyst-bundle",   "skills/lims-analysis.md",              "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
+        ("qc-analyst", "qc-analyst-bundle",   "blueprints/batch-release.md",          "blueprint", "Batch Release",           "Go/no-go release decision with spec comparison table",      550, 1),
+        ("qc-analyst", "tech-transfer-bundle","blueprints/deviation-investigation.md","blueprint", "Deviation Investigation", "Cross-system deviation + LIMS correlation workflow",        600, 0),
     ]
     conn.executemany(
-        "INSERT INTO persona_modules(persona_id, path, type, name, description, tokens, enabled_by_default) VALUES (?,?,?,?,?,?,?)",
-        [m for m in dev_modules + qc_modules],
+        "INSERT INTO persona_modules(persona_id, repo_id, path, type, name, description, tokens, enabled) VALUES (?,?,?,?,?,?,?,?)",
+        persona_modules,
     )
 
     conn.commit()
     conn.close()
-    total_modules = len(dev_modules) + len(qc_modules)
-    print(f"  Context: {len(marketplace)} marketplace repos, {len(personas)} personas, {total_modules} modules")
+    print(f"  Context: {len(marketplace)} marketplace repos, {len(context_repos)} context repos, "
+          f"{len(personas)} personas, {len(persona_modules)} persona modules")
 
 
 # ---------------------------------------------------------------------------
