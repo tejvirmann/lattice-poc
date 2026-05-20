@@ -217,23 +217,47 @@ Recommended local model: **Qwen3-30B-A3B** — mixture-of-experts architecture, 
 
 ## Getting started
 
+**Prerequisites:** [OpenCode](https://opencode.ai), Python 3.10+, and either [Ollama](https://ollama.ai) (local) or an OpenRouter API key.
+
 ```bash
-# 1. Install prerequisites
-brew install opencode
-pip install -r mcp-servers/requirements.txt
-pip install -r manager/requirements.txt
+# 1. Install OpenCode
+brew install opencode   # or see opencode.ai
 
-# 2. Seed the databases
-python scripts/seed_databases.py
+# 2. Install Python dependencies into a local virtualenv
+./lattice setup
 
-# 3. Configure
+# 3. Seed the databases (creates lims.db, qms.db, rosetta.db)
+./lattice seed
+
+# 4. Configure your provider
 cp .env.example .env
-# edit .env — set PROVIDER and API key or Ollama URL
+# edit .env — set PROVIDER=ollama or PROVIDER=openrouter + key
 
-# 4. Launch
-./lattice           # default: full registry, straight to OpenCode Web
-./lattice web       # with configurator UI for session-level context control
+# 5. Launch
+./lattice           # generate config → OpenCode Web at :4000 (default context)
+./lattice web       # same, plus Lattice Manager at :5000 for per-session context control
+./lattice tui       # OpenCode TUI instead of web (local dev)
 ```
+
+### First session
+
+With `./lattice web`, open `http://localhost:5000` in your browser. You'll see the registry — all available skills, blueprints, and MCP servers. Select what you want in context, check the token budget, and click **Launch Session**. You'll land in OpenCode Web at `:4000` with exactly that context loaded.
+
+Try asking:
+- *"Investigate deviation DEV-2025-003 — what LIMS results were affected?"*
+- *"Is batch NXV-2024-5 ready for release?"*
+- *"Show me all open critical deviations and their CAPAs."*
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `./lattice` | Generate config from registry → start OpenCode Web |
+| `./lattice web` | Same, plus start Lattice Manager at :5000 |
+| `./lattice tui` | Generate config → start OpenCode TUI |
+| `./lattice manager` | Start Manager only (OpenCode launched via UI) |
+| `./lattice seed` | (Re)seed all databases |
+| `./lattice setup` | Install Python dependencies |
 
 ---
 

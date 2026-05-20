@@ -438,17 +438,114 @@ Deployment is handled by the `docker-compose.yml` Ollama service — just set `O
 
 ---
 
+## Two-Layer Context Management
+
+Context is managed in two distinct layers, separating persistent persona configuration from per-session tuning.
+
+### Layer 1 — Personas (persistent, versioned, shareable)
+
+A persona is a named bundle of context modules (skills, blueprints, agents) stored in a git repo and registered in the local `context.db`. Personas can be scoped to public, team, or private.
+
+```json
+{
+  "id": "qc-analyst",
+  "name": "QC Analyst",
+  "repo": "https://github.com/acme-bio/lattice-personas.git",
+  "branch": "main",
+  "modules": ["skills/lims-analysis.md", "blueprints/batch-release.md"],
+  "scope": "team"
+}
+```
+
+**Marketplace** — a curated list of approved persona repos. Users browse it, click Add, and the persona is cloned and registered. For the POC, the marketplace is a local `marketplace.json`. In production it is a hosted service.
+
+**Sync job** (`scripts/sync_personas.py`) — runs on a schedule. For each registered persona with a `repo_url`, checks the remote HEAD hash against the stored `last_hash`. If changed, pulls and updates the cached module files in `.personas/cache/`. Logs to `sync_log` in `context.db`.
+
+### Layer 2 — Session Toggles (ephemeral)
+
+Once a persona is selected, its modules appear as checkboxes. The user can disable individual items to trim the context window for that session. The persona definition is never mutated. Token budget updates live as items are toggled.
+
+```
+Persona: QC Analyst (team scope · synced 2h ago)
+
+Modules                               Tokens   Session
+──────────────────────────────────────────────────────
+[x] skills/lims-analysis.md            ~400     ON
+[x] skills/qms-investigation.md        ~450     ON
+[x] blueprints/batch-release.md        ~550     ON
+[ ] blueprints/deviation-investigation  ~600    OFF  ← disabled for this session
+
+Budget: ~1,400 / 8,000 tokens
+```
+
+### Context DB (`databases/context.db`)
+
+```sql
+marketplace_repos(id, name, description, repo_url, owner, scope, verified)
+personas(id, name, description, repo_url, branch, scope, owner,
+         last_synced, last_hash, local_path)
+persona_modules(id, persona_id, path, type, name, description,
+                tokens, enabled_by_default)
+sync_log(id, persona_id, synced_at, status, message)
+```
+
+### Configurator UI — 3 tabs
+
+1. **Marketplace** — browse/search approved repos, add to Lattice
+2. **My Personas** — list registered personas, search by name/scope, sync status
+3. **Session** — pick a persona, toggle modules, set model, launch
+
+---
+
+## Git Repo Access — GitHub.com vs Self-Hosted
+
+Persona repos can be hosted on GitHub.com, GitHub Enterprise Server, or self-hosted GitLab. The `repo_url` is just a full git URL, so the hosting provider is transparent to most of the system.
+
+### GitHub.com (most common for small/mid biotech)
+```env
+GITHUB_PAT=ghp_...
+GITHUB_HOST=github.com    # default
+```
+PAT with `repo` scope. Used as HTTP basic auth credential for cloning private repos and for API calls to check commit hashes (`GET /repos/:owner/:repo/commits/HEAD`).
+
+### GitHub Enterprise Server (large pharma)
+```env
+GITHUB_PAT=ghp_...
+GITHUB_HOST=github.yourcompany.com
+```
+Same PAT mechanism. API base URL becomes `https://github.yourcompany.com/api/v3/`. The sync job reads `GITHUB_HOST` to construct the correct API endpoint. Git clone URL uses the same host.
+
+### Self-hosted GitLab
+```env
+GITLAB_PAT=glpat-...
+GITHUB_HOST=gitlab.yourcompany.com
+```
+GitLab uses the same git protocol (clone via HTTPS + token works). API endpoint for checking HEAD: `GET /api/v4/projects/:id/repository/commits?ref_name=main`. The sync job detects GitLab by checking for `GITLAB_PAT` in env.
+
+### SSH (universal fallback)
+If `repo_url` starts with `git@`, the sync job uses SSH and ignores PAT entirely. This works for all providers — GitHub.com, Enterprise, GitLab — as long as the server has the right SSH key configured. **Recommended for production** since it avoids storing tokens.
+
+```json
+{ "repo": "git@github.yourcompany.com:acme-bio/lattice-personas.git" }
+```
+
+### Public repos
+No token needed. Any `https://` URL to a public repo clones without auth.
+
+---
+
 ## Build Order
 
 | Phase | What | Done when |
 |---|---|---|
-| 1 | Seed databases | 5 SQLite DBs created by `seed_databases.py`, data looks realistic |
-| 2 | MCP servers | Each server starts, tools callable via `mcp dev` |
-| 3 | OpenCode Web up | `opencode web` running, connected to Ollama or OpenRouter, one MCP tool works |
-| 4 | Lattice Manager | Configurator page loads registry, selection POSTs to `/launch`, OpenCode restarts with new context, token budget visible |
-| 5 | Blueprints | At least one blueprint runs multi-step correctly after being selected in configurator |
-| 6 | Cross-system Signal | Query spans 2+ systems, Rosetta normalizes, model produces a comparison table |
-| 7 | Local model | Ollama running with Qwen3, same functionality, data never leaves server |
+| 1 | Seed databases | LIMS, QMS, Rosetta DBs seeded — ✅ done |
+| 2 | MCP servers | lims, qms, rosetta MCP servers running — ✅ done |
+| 3 | OpenCode Web + generate.py | Config generated, OpenCode starts — ✅ done |
+| 4 | Lattice Manager (flat) | Single-page configurator, token budget, launch — ✅ done |
+| 5 | Context DB + two-layer UI | Personas, marketplace, session toggles |
+| 6 | Sync job | `./lattice sync` pulls repo updates, updates context.db |
+| 7 | Cross-system Signal | Query spans 2+ systems, Rosetta normalizes |
+| 8 | Local model | Ollama + Qwen3, data never leaves |
 
 ---
 

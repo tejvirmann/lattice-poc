@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lattice</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a22;
+      --surface2: #1c2230;
+      --border: #252c38;
+      --accent: #3b82f6;
+      --accent-dim: #1d4ed8;
+      --text: #e2e8f0;
+      --text-dim: #64748b;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --purple: #a78bfa;
+      --r: 8px;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font);
+           font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    header { border-bottom: 1px solid var(--border); padding: 16px 28px;
+             display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+    .logo p { color: var(--text-dim); font-size: 12px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    #status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); display: inline-block; }
+    #status-dot.on { background: var(--green); }
+    #status-label { font-size: 12px; color: var(--text-dim); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 28px; }
+    .tab { padding: 12px 18px; font-size: 13px; font-weight: 500; color: var(--text-dim);
+           cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+           transition: color .15s, border-color .15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Main layout ── */
+    .content { flex: 1; display: none; padding: 24px 28px; overflow-y: auto; }
+    .content.active { display: block; }
+
+    /* ── Cards ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+            padding: 16px; transition: border-color .15s; }
+    .card:hover { border-color: #334155; }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .card-title { font-weight: 600; font-size: 14px; }
+    .card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 12px; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Badges ── */
+    .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 3px;
+             border: 1px solid; text-transform: uppercase; letter-spacing: .04em; }
+    .badge-verified { color: var(--green); border-color: #166534; background: #052e16; }
+    .badge-public   { color: var(--accent); border-color: #1e3a5f; background: #0f1d38; }
+    .badge-team     { color: var(--purple); border-color: #3730a3; background: #1e1b4b; }
+    .badge-private  { color: var(--text-dim); border-color: var(--border); background: var(--surface2); }
+    .badge-ok       { color: var(--green); border-color: #166534; background: #052e16; }
+    .badge-error    { color: var(--red); border-color: #7f1d1d; background: #2d0a0a; }
+
+    /* ── Buttons ── */
+    .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+           cursor: pointer; border: 1px solid; transition: background .15s, opacity .15s; }
+    .btn-primary   { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-ghost     { background: transparent; color: var(--text-dim); border-color: var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: #475569; }
+    .btn-danger    { background: transparent; color: var(--red); border-color: #7f1d1d; }
+    .btn-danger:hover { background: #2d0a0a; }
+    .btn:disabled  { opacity: .4; cursor: not-allowed; }
+
+    /* ── Search bar ── */
+    .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .search-row input, .search-row select {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      color: var(--text); font-size: 13px; padding: 8px 12px; outline: none;
+      transition: border-color .15s; }
+    .search-row input { flex: 1; }
+    .search-row input:focus, .search-row select:focus { border-color: var(--accent); }
+    .search-row select option { background: var(--surface); }
+
+    /* ── Section label ── */
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
+                     letter-spacing: .08em; color: var(--text-dim); margin-bottom: 14px; }
+
+    /* ── Persona list ── */
+    .persona-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+                   padding: 14px 16px; margin-bottom: 10px; display: flex;
+                   align-items: center; gap: 16px; transition: border-color .15s; }
+    .persona-row:hover { border-color: #334155; }
+    .persona-info { flex: 1; min-width: 0; }
+    .persona-name { font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+    .persona-desc { font-size: 12px; color: var(--text-dim); }
+    .persona-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .sync-label { font-size: 11px; color: var(--text-dim); }
+
+    /* ── Session panel ── */
+    .session-layout { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+    .module-list { }
+    .module-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+                   padding: 12px 14px; margin-bottom: 8px; display: flex;
+                   align-items: flex-start; gap: 12px; cursor: pointer;
+                   transition: border-color .15s, background .15s; }
+    .module-item:hover { border-color: #334155; }
+    .module-item.on { border-color: var(--accent); background: #0f1d38; }
+    .module-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent);
+                                          cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+    .module-body { flex: 1; }
+    .module-name { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+    .module-path { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+    .module-tokens { font-size: 11px; color: #818cf8; margin-top: 4px; }
+
+    .sidebar-card { background: var(--surface); border: 1px solid var(--border);
+                    border-radius: var(--r); padding: 16px; margin-bottom: 14px; }
+    .sidebar-title { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+                     color: var(--text-dim); font-weight: 600; margin-bottom: 12px; }
+    .stat-row { display: flex; justify-content: space-between; font-size: 12px;
+                padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--text-dim); }
+    .stat-val { font-weight: 500; }
+
+    .token-bar { background: var(--surface2); border-radius: 4px; height: 5px;
+                 overflow: hidden; margin-top: 10px; }
+    .token-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .2s; }
+    .token-labels { display: flex; justify-content: space-between; font-size: 11px;
+                    color: var(--text-dim); margin-top: 4px; }
+
+    .mcp-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .mcp-toggle { display: flex; align-items: center; gap: 5px; background: var(--surface2);
+                  border: 1px solid var(--border); border-radius: 5px; padding: 4px 10px;
+                  font-size: 12px; cursor: pointer; transition: border-color .15s; }
+    .mcp-toggle.on { border-color: var(--accent); background: #0f1d38; }
+    .mcp-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+    .model-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .field label { display: block; font-size: 11px; color: var(--text-dim);
+                   margin-bottom: 4px; font-weight: 500; }
+    .field input, .field select { width: 100%; background: var(--surface); border: 1px solid var(--border);
+                                   border-radius: 6px; color: var(--text); font-size: 12px;
+                                   padding: 7px 9px; outline: none; transition: border-color .15s; }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field select option { background: var(--surface); }
+
+    .launch-btn { width: 100%; padding: 11px; background: var(--accent); color: #fff;
+                  border: none; border-radius: var(--r); font-size: 14px; font-weight: 600;
+                  cursor: pointer; transition: background .15s; }
+    .launch-btn:hover { background: var(--accent-dim); }
+    .launch-btn:disabled { background: #1e3a5f; color: #4a6fa5; cursor: not-allowed; }
+    .launch-status { font-size: 12px; text-align: center; margin-top: 8px;
+                     min-height: 18px; color: var(--text-dim); }
+    .launch-status.ok  { color: var(--green); }
+    .launch-status.err { color: var(--red); }
+
+    .empty { text-align: center; padding: 40px; color: var(--text-dim); font-size: 13px; }
+
+    footer { border-top: 1px solid var(--border); padding: 10px 28px;
+             font-size: 11px; color: var(--text-dim); display: flex;
+             justify-content: space-between; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div>
+      <h1>Lattice</h1>
+      <p>Federated intelligence for biologics manufacturing</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span id="status-dot"></span>
+    <span id="status-label">OpenCode not running</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('marketplace')">Marketplace</div>
+  <div class="tab"        onclick="switchTab('personas')">My Personas</div>
+  <div class="tab"        onclick="switchTab('session')" id="session-tab">Session</div>
+</div>
+
+<!-- ── TAB 1: Marketplace ── -->
+<div class="content active" id="tab-marketplace">
+  <div class="search-row">
+    <input type="text" id="mkt-search" placeholder="Search context repos…" oninput="loadMarketplace()">
+    <select id="mkt-scope" onchange="loadMarketplace()">
+      <option value="">All scopes</option>
+      <option value="public">Public</option>
+      <option value="team">Team</option>
+    </select>
+  </div>
+  <div class="section-label">Available Context Repos</div>
+  <div class="grid" id="mkt-grid"><div class="empty">Loading…</div></div>
+</div>
+
+<!-- ── TAB 2: My Personas ── -->
+<div class="content" id="tab-personas">
+  <div class="search-row">
+    <input type="text" id="persona-search" placeholder="Search personas…" oninput="loadPersonas()">
+    <select id="persona-scope" onchange="loadPersonas()">
+      <option value="">All scopes</option>
+      <option value="public">Public</option>
+      <option value="team">Team</option>
+      <option value="private">Private</option>
+    </select>
+  </div>
+  <div class="section-label">Registered Personas</div>
+  <div id="persona-list"><div class="empty">Loading…</div></div>
+</div>
+
+<!-- ── TAB 3: Session ── -->
+<div class="content" id="tab-session">
+  <div id="no-persona" class="empty">
+    Select a persona from <strong>My Personas</strong> to configure a session.
+  </div>
+  <div id="session-body" style="display:none">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+      <div>
+        <div style="font-size:16px; font-weight:600" id="sess-persona-name"></div>
+        <div style="font-size:12px; color:var(--text-dim)" id="sess-persona-meta"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="switchTab('personas')">← Change persona</button>
+    </div>
+
+    <div class="session-layout">
+      <div>
+        <div class="section-label" style="margin-bottom:10px">Modules — toggle for this session</div>
+        <div id="module-list"></div>
+      </div>
+
+      <div>
+        <div class="sidebar-card">
+          <div class="sidebar-title">Session Summary</div>
+          <div class="stat-row"><span class="stat-label">Enabled</span><span class="stat-val" id="s-enabled">0</span></div>
+          <div class="stat-row"><span class="stat-label">Disabled</span><span class="stat-val" id="s-disabled">0</span></div>
+          <div class="token-bar"><div class="token-fill" id="s-token-fill" style="width:0%"></div></div>
+          <div class="token-labels"><span>Context tokens</span><span id="s-tokens">~0</span></div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sidebar-title">MCP Servers</div>
+          <div class="mcp-row" id="mcp-row"></div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sidebar-title">Model</div>
+          <div class="model-row">
+            <div class="field">
+              <label>Provider</label>
+              <select id="m-provider" onchange="updateModelInput()">
+                <option value="ollama">Ollama (local)</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Model</label>
+              <input id="m-model" type="text" value="qwen3:8b">
+            </div>
+          </div>
+        </div>
+
+        <button class="launch-btn" id="launch-btn" onclick="launch()" disabled>Launch Session</button>
+        <div class="launch-status" id="launch-status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>Lattice POC</span>
+  <span>data stays local</span>
+</footer>
+
+<script>
+const TOKEN_MAX = 8000;
+let state = {
+  activeTab: 'marketplace',
+  activePersona: null,
+  modules: [],           // full module list for active persona
+  enabledModules: new Set(),
+  mcps: [],
+  enabledMcps: new Set(),
+};
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['marketplace','personas','session'][i] === name);
+  });
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  state.activeTab = name;
+  if (name === 'marketplace') loadMarketplace();
+  if (name === 'personas')    loadPersonas();
+  if (name === 'session')     renderSession();
+}
+
+// ── Status polling ─────────────────────────────────────────────────────────
+
+async function pollStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const dot = document.getElementById('status-dot');
+    const lbl = document.getElementById('status-label');
+    if (d.opencode_running) {
+      dot.className = 'on';
+      lbl.textContent = `OpenCode running (pid ${d.pid})`;
+    } else {
+      dot.className = '';
+      lbl.textContent = 'OpenCode not running';
+    }
+  } catch {}
+}
+
+// ── Marketplace ────────────────────────────────────────────────────────────
+
+async function loadMarketplace() {
+  const search = document.getElementById('mkt-search').value;
+  const scope  = document.getElementById('mkt-scope').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (scope)  params.set('scope', scope);
+  const r = await fetch('/api/marketplace?' + params);
+  const repos = await r.json();
+  const grid = document.getElementById('mkt-grid');
+  if (!repos.length) { grid.innerHTML = '<div class="empty">No repos found.</div>'; return; }
+  grid.innerHTML = repos.map(repo => `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">${repo.name}</span>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          ${repo.verified ? '<span class="badge badge-verified">Verified</span>' : ''}
+          <span class="badge badge-${repo.scope}">${repo.scope}</span>
+        </div>
+      </div>
+      <div class="card-desc">${repo.description || ''}</div>
+      <div class="card-footer">
+        <span style="font-size:11px;color:var(--text-dim)">${repo.owner}</span>
+        ${repo.registered
+          ? '<span style="font-size:12px;color:var(--green)">✓ Added</span>'
+          : `<button class="btn btn-primary" onclick="addFromMarketplace('${repo.id}','${repo.name}','${escape(repo.description||'')}','${repo.repo_url}','${repo.scope}')">Add to Lattice</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addFromMarketplace(id, name, desc, repoUrl, scope) {
+  const slug = id.split('/')[1] || id.replace(/\W/g, '-');
+  const r = await fetch('/api/personas', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id: slug, name, description: unescape(desc), repo_url: repoUrl, scope }),
+  });
+  const d = await r.json();
+  if (!r.ok) { alert(d.detail || 'Failed to add persona'); return; }
+  await loadMarketplace();
+  switchTab('personas');
+}
+
+// ── My Personas ────────────────────────────────────────────────────────────
+
+async function loadPersonas() {
+  const search = document.getElementById('persona-search').value;
+  const scope  = document.getElementById('persona-scope').value;
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  if (scope)  params.set('scope', scope);
+  const r = await fetch('/api/personas?' + params);
+  const personas = await r.json();
+  const list = document.getElementById('persona-list');
+  if (!personas.length) { list.innerHTML = '<div class="empty">No personas registered. Browse the Marketplace to add one.</div>'; return; }
+  list.innerHTML = personas.map(p => {
+    const synced = p.last_synced ? `synced ${relativeTime(p.last_synced)}` : (p.repo_url ? 'never synced' : 'local');
+    return `
+    <div class="persona-row">
+      <div class="persona-info">
+        <div class="persona-name">${p.name}</div>
+        <div class="persona-desc">${p.description || ''}</div>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+          <span class="badge badge-${p.scope}">${p.scope}</span>
+          <span class="sync-label">${synced}</span>
+          ${p.repo_url ? `<span class="sync-label">· <a href="${p.repo_url}" target="_blank" style="color:var(--accent);text-decoration:none">${p.repo_url.replace('https://github.com/','')}</a></span>` : ''}
+        </div>
+      </div>
+      <div class="persona-actions">
+        ${p.repo_url ? `<button class="btn btn-ghost" onclick="syncPersona('${p.id}')">Sync</button>` : ''}
+        <button class="btn btn-primary" onclick="selectPersona('${p.id}')">Configure</button>
+        <button class="btn btn-danger" onclick="deletePersona('${p.id}')">Remove</button>
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+
+async function syncPersona(id) {
+  await fetch(`/api/personas/${id}/sync`, { method: 'POST' });
+  setTimeout(loadPersonas, 1500);
+}
+
+async function deletePersona(id) {
+  if (!confirm(`Remove persona "${id}"?`)) return;
+  await fetch(`/api/personas/${id}`, { method: 'DELETE' });
+  loadPersonas();
+}
+
+async function selectPersona(id) {
+  const r = await fetch(`/api/personas/${id}`);
+  const d = await r.json();
+  state.activePersona = d.persona;
+  state.modules = d.modules;
+
+  // Layer 1 defaults from persona
+  state.enabledModules = new Set(
+    d.modules.filter(m => m.enabled_by_default).map(m => m.path)
+  );
+
+  // MCPs: load dynamically from /api/mcps
+  const mR = await fetch('/api/mcps');
+  const mcpList = await mR.json();
+  state.mcps = mcpList.map(m => m.id);
+  state.enabledMcps = new Set(state.mcps);
+
+  switchTab('session');
+}
+
+// ── Session ────────────────────────────────────────────────────────────────
+
+function renderSession() {
+  const p = state.activePersona;
+  if (!p) {
+    document.getElementById('no-persona').style.display = '';
+    document.getElementById('session-body').style.display = 'none';
+    return;
+  }
+  document.getElementById('no-persona').style.display = 'none';
+  document.getElementById('session-body').style.display = '';
+
+  document.getElementById('sess-persona-name').textContent = p.name;
+  const synced = p.last_synced ? `synced ${relativeTime(p.last_synced)}` : 'local';
+  document.getElementById('sess-persona-meta').textContent =
+    `${p.scope} · ${synced}${p.repo_url ? ' · ' + p.repo_url.replace('https://github.com/','') : ''}`;
+
+  // Modules
+  const list = document.getElementById('module-list');
+  const typeOrder = { skill: 0, blueprint: 1, agent: 2, command: 3 };
+  const sorted = [...state.modules].sort((a,b) =>
+    (typeOrder[a.type]||9) - (typeOrder[b.type]||9) || a.name.localeCompare(b.name)
+  );
+
+  let lastType = null;
+  list.innerHTML = sorted.map(m => {
+    const on = state.enabledModules.has(m.path);
+    const typeLabel = lastType !== m.type
+      ? `<div class="section-label" style="margin-top:${lastType?'14px':'0'};margin-bottom:6px">${m.type}s</div>`
+      : '';
+    lastType = m.type;
+    return `
+      ${typeLabel}
+      <div class="module-item ${on?'on':''}" onclick="toggleModule('${m.path}')">
+        <input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation();toggleModule('${m.path}')">
+        <div class="module-body">
+          <div class="module-name">${m.name}</div>
+          <div class="module-path">${m.path}</div>
+          ${m.description ? `<div style="font-size:11px;color:var(--text-dim);margin-top:3px">${m.description}</div>` : ''}
+          ${m.tokens ? `<div class="module-tokens">~${m.tokens} tokens</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // MCPs
+  const mcpRow = document.getElementById('mcp-row');
+  mcpRow.innerHTML = state.mcps.map(mcp => `
+    <div class="mcp-toggle ${state.enabledMcps.has(mcp)?'on':''}" onclick="toggleMcp('${mcp}')">
+      <input type="checkbox" ${state.enabledMcps.has(mcp)?'checked':''} onclick="event.stopPropagation();toggleMcp('${mcp}')">
+      ${mcp}
+    </div>
+  `).join('');
+
+  updateStats();
+}
+
+function toggleModule(path) {
+  if (state.enabledModules.has(path)) state.enabledModules.delete(path);
+  else state.enabledModules.add(path);
+  renderSession();
+}
+
+function toggleMcp(name) {
+  if (state.enabledMcps.has(name)) state.enabledMcps.delete(name);
+  else state.enabledMcps.add(name);
+  renderSession();
+}
+
+function updateStats() {
+  const on = state.enabledModules.size;
+  const off = state.modules.length - on;
+  document.getElementById('s-enabled').textContent = on;
+  document.getElementById('s-disabled').textContent = off;
+
+  let tokens = 300; // base context.md
+  for (const path of state.enabledModules) {
+    const m = state.modules.find(x => x.path === path);
+    if (m) tokens += m.tokens || 0;
+  }
+  document.getElementById('s-tokens').textContent = `~${tokens.toLocaleString()}`;
+  document.getElementById('s-token-fill').style.width = Math.min(tokens/TOKEN_MAX*100,100)+'%';
+
+  document.getElementById('launch-btn').disabled = state.enabledMcps.size === 0;
+}
+
+function updateModelInput() {
+  const p = document.getElementById('m-provider').value;
+  document.getElementById('m-model').value = p === 'ollama' ? 'qwen3:8b' : 'qwen/qwen-2.5-72b-instruct';
+}
+
+async function launch() {
+  const btn = document.getElementById('launch-btn');
+  const msg = document.getElementById('launch-status');
+  btn.disabled = true;
+  msg.className = 'launch-status';
+  msg.textContent = 'Writing config and starting OpenCode…';
+
+  const provider = document.getElementById('m-provider').value;
+  const model    = `${provider}/${document.getElementById('m-model').value}`;
+
+  try {
+    const r = await fetch('/api/launch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        persona_id:      state.activePersona.id,
+        enabled_modules: [...state.enabledModules],
+        mcps:            [...state.enabledMcps],
+        model,
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Launch failed');
+    msg.className = 'launch-status ok';
+    msg.textContent = 'OpenCode started — redirecting…';
+    setTimeout(() => { window.location.href = d.redirect; }, 1200);
+  } catch(e) {
+    msg.className = 'launch-status err';
+    msg.textContent = e.message;
+    btn.disabled = false;
+  }
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+
+function relativeTime(iso) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+  if (diff < 86400)return `${Math.round(diff/3600)}h ago`;
+  return `${Math.round(diff/86400)}d ago`;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadMarketplace();
+  pollStatus();
+  setInterval(pollStatus, 6000);
+});
+</script>
+</body>
+</html>

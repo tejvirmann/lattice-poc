@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# lattice — start the Lattice POC
+#
+# Usage:
+#   ./lattice          → generate config + launch OpenCode Web (default)
+#   ./lattice web      → generate config + start Manager UI + OpenCode Web
+#   ./lattice tui      → generate config + launch OpenCode TUI (local dev)
+#   ./lattice manager  → start Manager UI only (OpenCode launched via browser)
+#   ./lattice seed     → (re)seed all databases
+#   ./lattice sync     → pull updates for all repo-backed personas
+#   ./lattice setup    → create .venv + install all Python dependencies
+#   ./lattice install  → reinstall dependencies into existing .venv
+
+set -e
+cd "$(dirname "$0")"
+
+PYTHON=".venv/bin/python3"
+MANAGER_PORT="${MANAGER_PORT:-5000}"
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+check_venv() {
+  if [ ! -f "$PYTHON" ]; then
+    echo "Virtual environment not found. Run: ./lattice setup"
+    exit 1
+  fi
+}
+
+check_dbs() {
+  if [ ! -f "databases/lims.db" ]; then
+    echo "Databases not found. Seeding now..."
+    $PYTHON scripts/seed_databases.py
+  fi
+}
+
+load_env() {
+  if [ -f .env ]; then
+    # export non-comment, non-empty lines
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
+  fi
+}
+
+generate_config() {
+  echo "Building opencode.jsonc from registry..."
+  $PYTHON scripts/generate.py
+}
+
+# ── commands ─────────────────────────────────────────────────────────────────
+
+cmd="${1:-}"
+
+case "$cmd" in
+
+  setup)
+    echo "Creating virtual environment..."
+    python3 -m venv .venv
+    .venv/bin/pip install -q -r mcp-servers/requirements.txt
+    .venv/bin/pip install -q -r manager/requirements.txt
+    echo "Done. Run ./lattice to start."
+    ;;
+
+  install)
+    check_venv
+    .venv/bin/pip install -q -r mcp-servers/requirements.txt
+    .venv/bin/pip install -q -r manager/requirements.txt
+    echo "Dependencies updated."
+    ;;
+
+  seed)
+    check_venv
+    $PYTHON scripts/seed_databases.py
+    ;;
+
+  sync)
+    check_venv
+    load_env
+    $PYTHON scripts/sync_personas.py "${@:2}"
+    ;;
+
+  tui)
+    check_venv
+    load_env
+    check_dbs
+    generate_config
+    echo "Starting OpenCode TUI..."
+    opencode
+    ;;
+
+  manager)
+    check_venv
+    load_env
+    echo "Starting Lattice Manager on http://localhost:${MANAGER_PORT}"
+    echo "Open your browser and configure your session, then click Launch."
+    $PYTHON manager/server.py
+    ;;
+
+  web|"")
+    check_venv
+    load_env
+    check_dbs
+    generate_config
+
+    if [ "$cmd" = "web" ]; then
+      echo ""
+      echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}"
+      echo "  OpenCode Web     →  http://localhost:4000  (after launch)"
+      echo ""
+      echo "  Open the Manager to configure your session, then click Launch."
+      echo "  Or go straight to http://localhost:4000 to use the default config."
+      echo ""
+      $PYTHON manager/server.py &
+      MANAGER_PID=$!
+      trap "kill $MANAGER_PID 2>/dev/null" EXIT
+    fi
+
+    echo "Starting OpenCode Web..."
+    opencode web
+    ;;
+
+  *)
+    echo "Usage: ./lattice [web|tui|manager|seed|sync|setup|install]"
+    exit 1
+    ;;
+
+esac

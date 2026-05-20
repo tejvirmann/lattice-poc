@@ -27,6 +27,7 @@ def days_from_now(n): return date_str(date.today() + timedelta(days=n))
 
 def seed_lims():
     db_path = DB_DIR / "lims.db"
+    db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript((SEED_DIR / "lims.sql").read_text())
 
@@ -123,6 +124,7 @@ def seed_lims():
 
 def seed_qms():
     db_path = DB_DIR / "qms.db"
+    db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript((SEED_DIR / "qms.sql").read_text())
 
@@ -225,6 +227,7 @@ def seed_qms():
 
 def seed_rosetta():
     db_path = DB_DIR / "rosetta.db"
+    db_path.unlink(missing_ok=True)
     conn = sqlite3.connect(db_path)
     conn.executescript((SEED_DIR / "rosetta.sql").read_text())
 
@@ -286,8 +289,112 @@ def seed_rosetta():
 
 
 # ---------------------------------------------------------------------------
+# Context DB
+# ---------------------------------------------------------------------------
+
+def seed_context():
+    db_path = DB_DIR / "context.db"
+    db_path.unlink(missing_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.executescript((SEED_DIR / "context.sql").read_text())
+
+    # Marketplace — approved context repos
+    marketplace = [
+        (
+            "lattice-hub/qc-analyst-bundle",
+            "QC Analyst Bundle",
+            "LIMS analysis, batch release, and deviation investigation skills for QC teams in biologics manufacturing.",
+            "https://github.com/lattice-hub/qc-analyst-bundle.git",
+            "lattice-hub", "public", 1, days_ago(90),
+        ),
+        (
+            "lattice-hub/clinical-signal-pack",
+            "Clinical Signal Pack",
+            "Cross-system safety signal detection linking CTMS adverse events to batch quality and PK data.",
+            "https://github.com/lattice-hub/clinical-signal-pack.git",
+            "lattice-hub", "public", 1, days_ago(60),
+        ),
+        (
+            "lattice-hub/tech-transfer-bundle",
+            "Tech Transfer Bundle",
+            "Lab-to-manufacturing comparison workflows. Assay bridging, yield gap analysis, process parameter drift.",
+            "https://github.com/lattice-hub/tech-transfer-bundle.git",
+            "lattice-hub", "public", 1, days_ago(45),
+        ),
+        (
+            "acme-bio/regulatory-readiness",
+            "Regulatory Readiness Pack",
+            "BLA/IND submission support: process characterization aggregation, missing data detection, deviation summary.",
+            "https://github.com/acme-bio/regulatory-readiness.git",
+            "acme-bio", "team", 0, days_ago(30),
+        ),
+        (
+            "acme-bio/capa-tracker",
+            "CAPA Tracker",
+            "Overdue CAPA detection, owner summary, and deviation pattern analysis across products.",
+            "https://github.com/acme-bio/capa-tracker.git",
+            "acme-bio", "team", 0, days_ago(20),
+        ),
+    ]
+    conn.executemany(
+        "INSERT INTO marketplace_repos VALUES (?,?,?,?,?,?,?,?)",
+        marketplace,
+    )
+
+    # Local default persona — points to the registry/ directory in this repo
+    registry_path = str(ROOT / "registry")
+    personas = [
+        (
+            "dev-default",
+            "Dev Default",
+            "All locally available skills and blueprints. Use for exploration and development.",
+            None, "main", "private", "local",
+            None, None, registry_path, days_ago(0),
+        ),
+        (
+            "qc-analyst",
+            "QC Analyst",
+            "QC-focused persona: LIMS analysis and batch release. Sourced from lattice-hub/qc-analyst-bundle (local copy).",
+            "https://github.com/lattice-hub/qc-analyst-bundle.git",
+            "main", "team", "local",
+            None, None, registry_path, days_ago(0),
+        ),
+    ]
+    conn.executemany(
+        "INSERT INTO personas VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        personas,
+    )
+
+    # Modules for dev-default (all registry files)
+    dev_modules = [
+        ("dev-default", "skills/lims-analysis.md",          "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
+        ("dev-default", "skills/qms-investigation.md",       "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
+        ("dev-default", "blueprints/deviation-investigation.md","blueprint","Deviation Investigation","Cross-system deviation + LIMS correlation workflow",       600, 1),
+        ("dev-default", "blueprints/batch-release.md",       "blueprint", "Batch Release",          "Go/no-go release decision with spec comparison table",      550, 1),
+    ]
+    # Modules for qc-analyst (subset — no deviation investigation blueprint to keep tokens lean)
+    qc_modules = [
+        ("qc-analyst",  "skills/lims-analysis.md",           "skill",     "LIMS Analysis",          "Analytical results, OOS detection, cross-batch comparison", 400, 1),
+        ("qc-analyst",  "skills/qms-investigation.md",        "skill",     "QMS Investigation",      "Deviations, CAPAs, batch release, audit findings",          450, 1),
+        ("qc-analyst",  "blueprints/batch-release.md",        "blueprint", "Batch Release",          "Go/no-go release decision with spec comparison table",      550, 1),
+        ("qc-analyst",  "blueprints/deviation-investigation.md","blueprint","Deviation Investigation","Cross-system deviation + LIMS correlation workflow",       600, 0),
+    ]
+    conn.executemany(
+        "INSERT INTO persona_modules(persona_id, path, type, name, description, tokens, enabled_by_default) VALUES (?,?,?,?,?,?,?)",
+        [m for m in dev_modules + qc_modules],
+    )
+
+    conn.commit()
+    conn.close()
+    total_modules = len(dev_modules) + len(qc_modules)
+    print(f"  Context: {len(marketplace)} marketplace repos, {len(personas)} personas, {total_modules} modules")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+ROOT = Path(__file__).parent.parent
 
 if __name__ == "__main__":
     print("Seeding Lattice databases...")
@@ -295,4 +402,5 @@ if __name__ == "__main__":
     seed_lims()
     seed_qms()
     seed_rosetta()
+    seed_context()
     print("Done. Databases written to databases/")

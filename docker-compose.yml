@@ -1,0 +1,30 @@
+services:
+
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  # Pull the default model on first start
+  ollama-pull:
+    image: ollama/ollama
+    depends_on: [ollama]
+    entrypoint: ["ollama", "pull", "${OLLAMA_MODEL:-qwen3:8b}"]
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    restart: "no"
+
+volumes:
+  ollama_data:
+
+# NOTE: OpenCode Web and the Lattice Manager run as local processes (./lattice web),
+# not as Docker containers, because they need access to the local filesystem for
+# the registry, opencode.jsonc, and the MCP server processes.
+#
+# Typical workflow:
+#   docker compose up -d ollama    # start Ollama in background
+#   ./lattice setup                # install Python deps
+#   ./lattice web                  # start Manager + OpenCode
