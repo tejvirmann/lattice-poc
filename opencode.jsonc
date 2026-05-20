@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/qwen3:8b",
+  "instructions": [
+    "/Users/tejvirmann/Documents/lattice-poc/registry/context.md",
+    "registry/skills/lims-analysis.md",
+    "registry/skills/qms-investigation.md",
+    "registry/blueprints/batch-release.md",
+    "registry/blueprints/deviation-investigation.md"
+  ],
+  "mcp": {
+    "lims": {
+      "type": "local",
+      "command": [
+        ".venv/bin/python3",
+        "mcp-servers/lims_mcp.py"
+      ],
+      "enabled": true
+    },
+    "qms": {
+      "type": "local",
+      "command": [
+        ".venv/bin/python3",
+        "mcp-servers/qms_mcp.py"
+      ],
+      "enabled": true
+    },
+    "rosetta": {
+      "type": "local",
+      "command": [
+        ".venv/bin/python3",
+        "mcp-servers/rosetta_mcp.py"
+      ],
+      "enabled": true
+    }
+  },
+  "server": {
+    "hostname": "0.0.0.0",
+    "port": 4000
+  }
+}

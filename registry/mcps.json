@@ -1,0 +1,20 @@
+{
+  "lims": {
+    "command": [".venv/bin/python3", "mcp-servers/lims_mcp.py"],
+    "description": "LIMS — samples, assay results, compounds, instruments",
+    "systems": ["LIMS"],
+    "tokens": 0
+  },
+  "qms": {
+    "command": [".venv/bin/python3", "mcp-servers/qms_mcp.py"],
+    "description": "QMS — batch records, deviations, CAPAs, specifications",
+    "systems": ["QMS"],
+    "tokens": 0
+  },
+  "rosetta": {
+    "command": [".venv/bin/python3", "mcp-servers/rosetta_mcp.py"],
+    "description": "Rosetta — cross-system terminology and unit normalization",
+    "systems": ["Rosetta"],
+    "tokens": 0
+  }
+}
