@@ -1,0 +1,161 @@
+/*
+ * Lattice-poc theme for Open WebUI
+ * Mounted at /app/build/static/custom.css inside the container.
+ * See docker-compose.yml volume mount.
+ */
+
+/* ── Fonts ──────────────────────────────────────────────────────────────────*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Global font ────────────────────────────────────────────────────────────*/
+html, body, * {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+}
+pre, code, kbd, [class*="font-mono"] {
+  font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+}
+
+/* ── Global teal accent — replace all Tailwind blue vars ────────────────────*/
+:root {
+  --color-blue-50:  #f3f8f7;
+  --color-blue-100: #e6f1ef;
+  --color-blue-200: #c8dedd;
+  --color-blue-300: #9dd0cc;
+  --color-blue-400: #62b3ae;
+  --color-blue-500: #369996;
+  --color-blue-600: #2a7e7b;
+  --color-blue-700: #15716a;
+  --color-blue-800: #0f5753;
+  --color-blue-900: #0a3e3b;
+  --color-blue-950: #062927;
+}
+
+/* ── Sidebar — turquoise, with scoped gray-scale override ───────────────────*/
+/*
+ * Override the Tailwind gray-scale variables INSIDE the sidebar scope.
+ * Every bg-gray-* and text-gray-* utility class on sidebar children
+ * will resolve to these values instead of the default dark grays.
+ */
+#sidebar {
+  /* Background tones: main teal → slightly darker for nested panels */
+  --color-gray-950: #2a7e7b;
+  --color-gray-900: #2d8480;
+  --color-gray-850: #329490;
+  --color-gray-800: #369996;
+  --color-gray-700: #42a8a4;
+
+  /* Text tones: map dark grays → readable whites on teal */
+  --color-gray-100: rgba(255, 255, 255, 0.95);
+  --color-gray-200: rgba(255, 255, 255, 0.85);
+  --color-gray-300: rgba(255, 255, 255, 0.75);
+  --color-gray-400: rgba(255, 255, 255, 0.60);
+  --color-gray-500: rgba(255, 255, 255, 0.45);
+  --color-gray-600: rgba(255, 255, 255, 0.35);
+
+  background-color: #369996 !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Ensure all direct text nodes / spans / divs inherit white */
+#sidebar * {
+  color: inherit;
+}
+
+/* Hover state for nav items */
+#sidebar button:hover,
+#sidebar a:hover,
+#sidebar [role="button"]:hover,
+#sidebar [role="listitem"]:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Selected / active chat item */
+#sidebar button[aria-current],
+#sidebar [aria-current="page"],
+#sidebar-chat-item.selected,
+#sidebar-chat-item[data-active="true"] {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border-left: 3px solid white !important;
+}
+
+/* ── User / profile section at the bottom of the sidebar ───────────────────*/
+/*
+ * The user profile area can have a bg-gray-900/bg-gray-950 class of its own.
+ * Scoped variable override above handles it, but also explicitly target
+ * structural positions to be safe.
+ */
+#sidebar > div:last-child,
+#sidebar > nav > div:last-child,
+#sidebar footer,
+#sidebar [class*="user-info"],
+#sidebar [class*="profile"],
+#sidebar [id*="user-menu"],
+#sidebar [id*="user"] {
+  background-color: #2a7e7b !important;   /* slightly deeper teal = subtle separation */
+  color: rgba(255, 255, 255, 0.92) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── Scrollbar inside sidebar ───────────────────────────────────────────────*/
+#sidebar ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+#sidebar ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.40) !important;
+}
+
+/* ── Top bar / header ───────────────────────────────────────────────────────*/
+nav[class*="fixed top"],
+header[class*="fixed"],
+div[class*="sticky top-0"],
+#header {
+  border-bottom: 1px solid rgba(0,0,0,.08) !important;
+}
+
+/* ── Buttons — pill primary ─────────────────────────────────────────────────*/
+button[class*="bg-black"],
+button[class*="dark:bg-white"],
+button[class*="rounded-full"][class*="bg-"] {
+  border-radius: 999px !important;
+}
+
+/* ── Focus rings — teal ─────────────────────────────────────────────────────*/
+input:focus, textarea:focus, select:focus {
+  outline-color: #369996 !important;
+  border-color: #369996 !important;
+  box-shadow: 0 0 0 3px rgba(54,153,150,.15) !important;
+}
+
+/* ── Send button ────────────────────────────────────────────────────────────*/
+button[aria-label*="send" i],
+button[type="submit"][class*="rounded"] {
+  border-radius: 999px !important;
+}
+
+/* ── Chat typography ────────────────────────────────────────────────────────*/
+.prose, .prose * {
+  font-family: 'Inter', sans-serif !important;
+  line-height: 1.65 !important;
+}
+.prose h1, .prose h2, .prose h3 {
+  letter-spacing: -.02em !important;
+}
+
+/* ── Global scrollbar ───────────────────────────────────────────────────────*/
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(54,153,150,.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(54,153,150,.5); }
+
+/* ── Lattice Session Panel — context & MCP tabs injected by lattice-panel.js ─*/
+#lattice-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: var(--sidebar-width, 260px);
+  z-index: 1000;
+  font-family: 'Inter', sans-serif !important;
+}

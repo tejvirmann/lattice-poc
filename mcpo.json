@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "lims": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp-servers/lims_mcp.py"]
+    },
+    "qms": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp-servers/qms_mcp.py"]
+    },
+    "rosetta": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp-servers/rosetta_mcp.py"]
+    }
+  }
+}

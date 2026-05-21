@@ -8,7 +8,6 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
-  # Pull the default model on first start
   ollama-pull:
     image: ollama/ollama
     depends_on: [ollama]
@@ -17,14 +16,47 @@ services:
       - OLLAMA_HOST=http://ollama:11434
     restart: "no"
 
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "${OPENWEBUI_PORT:-4000}:8080"
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - WEBUI_AUTH=${WEBUI_AUTH:-False}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-lattice-dev-secret}
+      - WEBUI_NAME=${WEBUI_NAME:-Lattice-poc}
+      - MCP_SERVER_URL=http://host.docker.internal:${MCPO_PORT:-8001}
+      # OpenRouter as an OpenAI-compatible provider
+      - OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+      - OPENAI_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - open-webui-data:/app/backend/data
+      - ./openwebui-theme.css:/app/build/static/custom.css:ro
+      - ./lattice-panel.js:/app/build/static/loader.js:ro
+    restart: unless-stopped
+
 volumes:
   ollama_data:
+  open-webui-data:
 
-# NOTE: OpenCode Web and the Lattice Manager run as local processes (./lattice web),
-# not as Docker containers, because they need access to the local filesystem for
-# the registry, opencode.jsonc, and the MCP server processes.
+# ── How this fits together ────────────────────────────────────────────────────
 #
-# Typical workflow:
-#   docker compose up -d ollama    # start Ollama in background
-#   ./lattice setup                # install Python deps
-#   ./lattice web                  # start Manager + OpenCode
+#  Docker (managed here):
+#    ollama         → local model inference at :11434
+#    open-webui     → chat UI at :4000
+#
+#  Local processes (managed by ./lattice):
+#    MCPO           → proxies stdio MCP servers to HTTP/SSE at :8001
+#    Lattice Manager → configurator UI at :5000
+#
+#  First-time setup:
+#    docker compose up -d ollama open-webui
+#    ./lattice setup
+#    ./lattice seed
+#    ./lattice web
+#
+#  Open WebUI MCP registration (one-time, in the admin UI):
+#    Settings → Tools → + Add Tool
+#    URL: http://host.docker.internal:8001/lims/sse   (type: MCP)
+#    URL: http://host.docker.internal:8001/qms/sse    (type: MCP)
+#    URL: http://host.docker.internal:8001/rosetta/sse (type: MCP)

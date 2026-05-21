@@ -7,6 +7,12 @@ Each organization keeps full custody of their systems. Lattice coordinates the i
 
 ---
 
+## Demo
+
+<!-- Add demo video here -->
+
+---
+
 ## The problem
 
 Biologics manufacturing generates data across dozens of systems: lab results, batch records, deviation logs, clinical outcomes, manufacturing parameters. When something goes wrong — or needs to scale — that data lives in silos across sites, partners, and software vendors.
@@ -91,6 +97,48 @@ Detect drift in a key process parameter — pH, temperature, yield, endotoxin �
 
 ---
 
+## Architecture (POC)
+
+```
+  ./lattice web
+      │
+      ├── starts MCPO at :8001
+      │   (proxies stdio MCP servers to HTTP/SSE)
+      │
+      ├── starts Docker: Open WebUI at :4000
+      │
+      └── starts Lattice Manager at :5000
+          (persona + context configurator)
+
+  :5000  Lattice Manager
+         Select persona, modules, and MCP servers.
+         Click Launch — context is pushed automatically.
+                │
+                │ compiles system prompt
+                │ registers MCP tool servers in Open WebUI
+                │ creates/updates model preset
+                ▼
+  :4000  Open WebUI  (the harness)
+         Chat UI · Tool call trace · Session history
+                │
+         ┌──────┴──────┐
+         ▼             ▼
+      Ollama        OpenRouter
+      (local)       (default for dev)
+         │
+         │  MCP tool calls via MCPO
+         ▼
+  :8001  MCPO
+         Proxies stdio → HTTP/SSE + OpenAPI
+         ├── /lims/     → lims_mcp.py  → lims.db
+         ├── /qms/      → qms_mcp.py   → qms.db
+         └── /rosetta/  → rosetta_mcp.py → rosetta.db
+```
+
+Everything runs locally. Nothing reaches the internet except model inference calls when using OpenRouter.
+
+---
+
 ## Security model
 
 Lattice is designed for environments where data sovereignty is non-negotiable.
@@ -114,64 +162,82 @@ Lattice is designed for environments where data sovereignty is non-negotiable.
 
 ---
 
-## Architecture (POC)
+## Getting started
 
-```
-  ./lattice
-      │
-      ├── (default) writes opencode.jsonc with full registry
-      │             starts OpenCode Web at :4000
-      │
-      └── (web)     also starts Lattice Manager at :5000
-                    for pre-session context selection
+**Prerequisites:** Docker, Python 3.10+, and either [Ollama](https://ollama.ai) (local) or an OpenRouter API key.
 
-  :5000  Lattice Manager
-         Select which skills, blueprints, and MCP servers
-         to include in the session. See estimated token cost
-         per item. Launch when ready.
-                │
-                │ writes opencode.jsonc with selected items only
-                │ restarts OpenCode Web
-                ▼
-  :4000  OpenCode Web  (the harness)
-         Markdown · Tables · Tool call trace · Session history
-                │
-         ┌──────┴──────┐
-         ▼             ▼
-      Ollama        OpenRouter
-      (local)       (dev only)
-         │
-         │  MCP tools
-         ▼
-  lims_mcp · eln_mcp · qms_mcp · mes_mcp · ctms_mcp · rosetta_mcp
-         │
-         ▼
-  lims.db · eln.db · qms.db · mes.db · ctms.db  (SQLite, local)
+```bash
+# 1. Install Python dependencies
+./lattice setup
+
+# 2. Seed the databases (creates lims.db, qms.db, rosetta.db)
+./lattice seed
+
+# 3. Configure your provider
+cp .env.example .env
+# Edit .env — set OPENROUTER_API_KEY or switch PROVIDER=ollama
+
+# 4. Launch
+./lattice web
 ```
+
+Open `http://localhost:5000` in your browser.
 
 ---
 
-## Registry
+## First session
 
-Context is controlled through a registry of files. Before each session, you choose what gets injected — only what you need, keeping the context window lean.
+1. Open `http://localhost:5000` (Lattice Manager)
+2. Select a **persona** (e.g. Quality Scientist, CMC Lead)
+3. Select **modules** (skills and blueprints relevant to your workflow)
+4. Select which **MCP servers** to include (LIMS, QMS, Rosetta, …)
+5. Click **Launch Session** — Open WebUI opens at `:4000` with everything pre-loaded
 
+The model will already know its role, what tools it has access to, and what workflows to follow. No manual configuration inside the chat.
+
+Try asking:
+- *"Investigate deviation DEV-2025-003 — what LIMS results were affected?"*
+- *"Is batch NXV-2024-5 ready for release?"*
+- *"Show me all open critical deviations and their CAPAs."*
+- *"Tell me what tools and context I have available."*
+
+---
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `./lattice web` | Start full stack: MCPO + Open WebUI + Lattice Manager |
+| `./lattice tui` | Start MCPO + OpenCode CLI (alternative harness) |
+| `./lattice manager` | Start Lattice Manager only |
+| `./lattice seed` | (Re)seed all databases |
+| `./lattice setup` | Install Python dependencies |
+| `./lattice sync` | Sync context to harness |
+
+---
+
+## Provider configuration
+
+| Mode | Provider | Notes |
+|---|---|---|
+| Development (default) | OpenRouter | Cloud-hosted. Fast setup — add API key and go. Use only with non-sensitive dev data. |
+| Production | Ollama (local) | Model runs on the same server as Lattice. Nothing leaves the network. |
+
+Switch via `.env`:
+
+```env
+# Development default (OpenRouter)
+PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_MODEL=deepseek/deepseek-v4-flash
+
+# Production (local, data never leaves)
+PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3:30b-a3b
 ```
-registry/
-  context.md                    ← base Lattice persona, always loaded
-  skills/
-    tech-transfer.md            ← enabled: true/false in frontmatter
-    deviation-investigation.md
-    batch-release.md
-    clinical-signal.md
-  blueprints/
-    tech-transfer.md            ← step-by-step workflow instructions
-    deviation-investigation.md
-    batch-release.md
-    clinical-signal.md
-  mcps.json                     ← MCP server definitions
-```
 
-Each skill and blueprint declares its name, description, and estimated token cost in frontmatter. The configurator shows the running total as you build your session.
+Recommended local model: **Qwen3-30B-A3B** — mixture-of-experts architecture, ~3B parameters active at inference, fits in 20GB RAM, strong tool use and structured output.
 
 ---
 
@@ -180,84 +246,10 @@ Each skill and blueprint declares its name, description, and estimated token cos
 | System | What it holds |
 |---|---|
 | **LIMS** | Compounds, samples, assay methods, analytical results, instruments |
-| **ELN** | Experiment protocols, researcher observations, lab deviations |
 | **QMS** | Batch records, OOS deviations, CAPAs, audit findings, specifications |
-| **MES** | Manufacturing batches, process parameters, equipment logs, material lots |
-| **CTMS** | Clinical trials, sites, enrolled subjects, adverse events, PK samples |
 | **Rosetta** | Terminology mappings, unit conversions, compound alias resolution |
 
 Seed data covers realistic biologics scenarios: mAbs, ADCs, kinase inhibitors. Assays include HPLC purity, SEC aggregate, bioassay potency, endotoxin, osmolality. QMS deviations include temperature excursions, yield OOS, container closure failures.
-
----
-
-## Provider
-
-| Mode | Provider | Notes |
-|---|---|---|
-| Production | Ollama (local) | Model runs on the same server as Lattice. Nothing leaves the network. |
-| Development | OpenRouter | Cloud-hosted. Data is part of the prompt — use only for dev/test with non-sensitive data. |
-
-Switch via `.env`:
-
-```env
-# Local (production)
-PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen3-30b-a3b
-
-# Cloud (dev only)
-PROVIDER=openrouter
-OPENROUTER_API_KEY=sk-or-...
-OPENROUTER_MODEL=qwen/qwen-2.5-72b-instruct
-```
-
-Recommended local model: **Qwen3-30B-A3B** — mixture-of-experts architecture, ~3B parameters active at inference, fits in 20GB RAM, strong tool use and structured output.
-
----
-
-## Getting started
-
-**Prerequisites:** [OpenCode](https://opencode.ai), Python 3.10+, and either [Ollama](https://ollama.ai) (local) or an OpenRouter API key.
-
-```bash
-# 1. Install OpenCode
-brew install opencode   # or see opencode.ai
-
-# 2. Install Python dependencies into a local virtualenv
-./lattice setup
-
-# 3. Seed the databases (creates lims.db, qms.db, rosetta.db)
-./lattice seed
-
-# 4. Configure your provider
-cp .env.example .env
-# edit .env — set PROVIDER=ollama or PROVIDER=openrouter + key
-
-# 5. Launch
-./lattice           # generate config → OpenCode Web at :4000 (default context)
-./lattice web       # same, plus Lattice Manager at :5000 for per-session context control
-./lattice tui       # OpenCode TUI instead of web (local dev)
-```
-
-### First session
-
-With `./lattice web`, open `http://localhost:5000` in your browser. You'll see the registry — all available skills, blueprints, and MCP servers. Select what you want in context, check the token budget, and click **Launch Session**. You'll land in OpenCode Web at `:4000` with exactly that context loaded.
-
-Try asking:
-- *"Investigate deviation DEV-2025-003 — what LIMS results were affected?"*
-- *"Is batch NXV-2024-5 ready for release?"*
-- *"Show me all open critical deviations and their CAPAs."*
-
-### Commands
-
-| Command | What it does |
-|---|---|
-| `./lattice` | Generate config from registry → start OpenCode Web |
-| `./lattice web` | Same, plus start Lattice Manager at :5000 |
-| `./lattice tui` | Generate config → start OpenCode TUI |
-| `./lattice manager` | Start Manager only (OpenCode launched via UI) |
-| `./lattice seed` | (Re)seed all databases |
-| `./lattice setup` | Install Python dependencies |
 
 ---
 

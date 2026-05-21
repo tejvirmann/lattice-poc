@@ -2,20 +2,27 @@
 # lattice — start the Lattice POC
 #
 # Usage:
-#   ./lattice          → generate config + launch OpenCode Web (default)
-#   ./lattice web      → generate config + start Manager UI + OpenCode Web
-#   ./lattice tui      → generate config + launch OpenCode TUI (local dev)
-#   ./lattice manager  → start Manager UI only (OpenCode launched via browser)
+#   ./lattice          → Open WebUI harness (Manager + MCPO + Open WebUI)
+#   ./lattice web      → same as default
+#   ./lattice tui      → OpenCode TUI harness (Manager + MCPO + opencode CLI)
+#   ./lattice manager  → Manager UI only (assumes harness services already running)
 #   ./lattice seed     → (re)seed all databases
-#   ./lattice sync     → pull updates for all repo-backed personas
+#   ./lattice sync     → pull updates for all repo-backed context repos
 #   ./lattice setup    → create .venv + install all Python dependencies
 #   ./lattice install  → reinstall dependencies into existing .venv
+#
+# Harness env var (set in .env or inline):
+#   HARNESS=openwebui  → use Open WebUI at :4000  (default)
+#   HARNESS=opencode   → use OpenCode web at OPENCODE_PORT
 
 set -e
 cd "$(dirname "$0")"
 
 PYTHON=".venv/bin/python3"
 MANAGER_PORT="${MANAGER_PORT:-5000}"
+MCPO_PORT="${MCPO_PORT:-8001}"
+OPENWEBUI_PORT="${OPENWEBUI_PORT:-4000}"
+OPENCODE_PORT="${OPENCODE_PORT:-4000}"
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,7 +34,7 @@ check_venv() {
 }
 
 check_dbs() {
-  if [ ! -f "databases/lims.db" ]; then
+  if [ ! -f "databases/context.db" ]; then
     echo "Databases not found. Seeding now..."
     $PYTHON scripts/seed_databases.py
   fi
@@ -35,7 +42,6 @@ check_dbs() {
 
 load_env() {
   if [ -f .env ]; then
-    # export non-comment, non-empty lines
     set -a
     # shellcheck disable=SC1091
     source .env
@@ -43,9 +49,11 @@ load_env() {
   fi
 }
 
-generate_config() {
-  echo "Building opencode.jsonc from registry..."
-  $PYTHON scripts/generate.py
+start_mcpo() {
+  echo "Starting MCPO on :${MCPO_PORT}..."
+  uvx mcpo --port "$MCPO_PORT" --config mcpo.json &
+  MCPO_PID=$!
+  echo "  MCPO started (pid $MCPO_PID)"
 }
 
 # ── commands ─────────────────────────────────────────────────────────────────
@@ -84,16 +92,36 @@ case "$cmd" in
     check_venv
     load_env
     check_dbs
-    generate_config
-    echo "Starting OpenCode TUI..."
-    opencode
+    start_mcpo
+
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (harness: opencode)"
+    echo "  OpenCode Web     →  http://localhost:${OPENCODE_PORT}  (after first Launch)"
+    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
+    echo ""
+    echo "  Open the Manager, pick a persona, click Launch."
+    echo ""
+
+    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
+    HARNESS=opencode $PYTHON manager/server.py
     ;;
 
   manager)
     check_venv
     load_env
-    echo "Starting Lattice Manager on http://localhost:${MANAGER_PORT}"
-    echo "Open your browser and configure your session, then click Launch."
+    check_dbs
+    # Inherit HARNESS from env (or default openwebui)
+    HARNESS="${HARNESS:-openwebui}"
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (harness: ${HARNESS})"
+    echo ""
+    if [ "$HARNESS" = "openwebui" ]; then
+      echo "  Assumes Open WebUI at http://localhost:${OPENWEBUI_PORT}"
+    else
+      echo "  Assumes OpenCode at http://localhost:${OPENCODE_PORT}"
+    fi
+    echo "  Assumes MCPO at http://localhost:${MCPO_PORT}"
+    echo ""
     $PYTHON manager/server.py
     ;;
 
@@ -101,23 +129,22 @@ case "$cmd" in
     check_venv
     load_env
     check_dbs
-    generate_config
+    start_mcpo
 
-    if [ "$cmd" = "web" ]; then
-      echo ""
-      echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}"
-      echo "  OpenCode Web     →  http://localhost:4000  (after launch)"
-      echo ""
-      echo "  Open the Manager to configure your session, then click Launch."
-      echo "  Or go straight to http://localhost:4000 to use the default config."
-      echo ""
-      $PYTHON manager/server.py &
-      MANAGER_PID=$!
-      trap "kill $MANAGER_PID 2>/dev/null" EXIT
-    fi
+    echo "Starting Open WebUI..."
+    docker compose up -d open-webui
 
-    echo "Starting OpenCode Web..."
-    opencode web
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (harness: openwebui)"
+    echo "  Open WebUI       →  http://localhost:${OPENWEBUI_PORT}"
+    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
+    echo ""
+    echo "  Open the Manager, pick a persona, click Launch."
+    echo "  Open WebUI opens with your context and MCPs loaded."
+    echo ""
+
+    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
+    HARNESS=openwebui $PYTHON manager/server.py
     ;;
 
   *)

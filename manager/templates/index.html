@@ -3,82 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lattice</title>
+  <title>Lattice-poc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy:      #0c1e35;
-      --navy-mid:  #1a3352;
-      --navy-soft: #e8edf3;
-      --blue:      #2563eb;
-      --blue-lt:   #dbeafe;
-      --bg:        #f0f4f8;
-      --surface:   #ffffff;
-      --surface-2: #f7f9fc;
-      --border:    #e2e8f0;
-      --text:      #0c1e35;
-      --text-2:    #64748b;
-      --text-3:    #94a3b8;
-      --success:   #059669;
-      --warn:      #d97706;
-      --danger:    #dc2626;
-      --r:  6px;
-      --rl: 10px;
-      --sh: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
-      --sh-md: 0 4px 16px rgba(0,0,0,.09);
+      /* Brand palette — matches axiobiopharma.com/lattice */
+      --indigo:       #212154;
+      --indigo-mid:   #2d2d6e;
+      --teal:         #369996;
+      --teal-ink:     #15716a;
+      --teal-soft:    #e6f1ef;
+      --teal-softer:  #f3f8f7;
+      --green:        #72C272;
+
+      /* Ink scale */
+      --ink:    #0f1a1a;
+      --ink-2:  #2b3838;
+      --ink-3:  #5c6b6a;
+      --ink-4:  #8a9796;
+
+      /* Surfaces & borders */
+      --bg:       #f4f8f7;
+      --surface:  #ffffff;
+      --surface-2:#f4f8f7;
+      --border:   #e3e9e7;
+      --border-2: #eef2f0;
+
+      /* Semantic */
+      --success: #059669;
+      --warn:    #d97706;
+      --danger:  #dc2626;
+
+      /* Radii */
+      --r:    8px;
+      --rl:   12px;
+      --rpill: 999px;
+
+      /* Shadows */
+      --sh:    0 1px 3px rgba(15,26,26,.06), 0 1px 2px rgba(15,26,26,.04);
+      --sh-md: 0 4px 16px rgba(15,26,26,.08);
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 14px;
-      color: var(--text);
+      color: var(--ink);
       background: var(--bg);
       min-height: 100vh;
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "ss01","cv11";
     }
 
     /* ── NAV ── */
     header {
-      background: var(--navy);
+      background: var(--indigo);
       display: flex;
       align-items: center;
       gap: 36px;
-      padding: 0 32px;
+      padding: 0 28px;
       height: 54px;
       position: sticky;
       top: 0;
       z-index: 200;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
     .brand {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .18em;
-      color: rgba(255,255,255,.9);
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
       flex-shrink: 0;
+      text-decoration: none;
+    }
+    .brand-word {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      color: #ffffff;
+    }
+    .brand-poc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .12em;
+      color: var(--teal);
+      text-transform: uppercase;
+      opacity: .9;
     }
     nav { display: flex; }
     nav button {
       background: none;
       border: none;
       border-bottom: 2px solid transparent;
-      color: rgba(255,255,255,.55);
+      color: rgba(255,255,255,.5);
       height: 54px;
       padding: 0 16px;
       font-size: 13px;
-      font-family: inherit;
+      font-family: 'Inter', inherit;
+      font-weight: 500;
       cursor: pointer;
       transition: color .15s, border-color .15s;
+      letter-spacing: .01em;
     }
-    nav button:hover  { color: rgba(255,255,255,.85); }
-    nav button.active { color: #fff; border-bottom-color: #fff; }
+    nav button:hover  { color: rgba(255,255,255,.8); }
+    nav button.active { color: #fff; border-bottom-color: var(--teal); }
     .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     .oc-pill {
-      font-size: 11px; font-weight: 500; padding: 3px 10px;
-      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: var(--rpill);
     }
-    .oc-pill.on  { background: rgba(5,150,105,.25); color: #6ee7b7; }
-    .oc-pill.off { background: rgba(255,255,255,.08); color: rgba(255,255,255,.4); }
+    .oc-pill.on  { background: rgba(54,153,150,.2); color: var(--teal); border: 1px solid rgba(54,153,150,.35); }
+    .oc-pill.off { background: rgba(255,255,255,.07); color: rgba(255,255,255,.35); border: 1px solid rgba(255,255,255,.1); }
 
     /* ── TABS ── */
     main { min-height: calc(100vh - 54px); }
@@ -91,56 +136,79 @@
       border-bottom: 1px solid var(--border);
       padding: 28px 32px 0;
     }
-    .ph h1 { font-size: 20px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
-    .ph p  { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+    .ph h1 {
+      font-size: 20px; font-weight: 600; color: var(--indigo);
+      letter-spacing: -.02em; margin-bottom: 4px;
+    }
+    .ph p  { font-size: 13px; color: var(--ink-3); margin-bottom: 20px; }
     .ph-tools { display: flex; gap: 8px; align-items: center; padding-bottom: 20px; }
+
+    /* ── MONO LABELS ── */
+    .mono-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+    .mono-label.accent { color: var(--teal); }
 
     /* ── FORMS ── */
     input, textarea, select {
-      font-family: inherit; font-size: 13px; color: var(--text);
+      font-family: 'Inter', inherit; font-size: 13px; color: var(--ink);
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r); padding: 7px 12px; outline: none;
-      transition: border-color .15s;
+      border-radius: var(--r); padding: 8px 12px; outline: none;
+      transition: border-color .15s, box-shadow .15s;
     }
-    input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(54,153,150,.1);
+    }
     input[type=search] { width: 250px; }
+    ::placeholder { color: var(--ink-4); }
 
     /* ── BUTTONS ── */
     .btn {
       display: inline-flex; align-items: center; gap: 5px;
-      font-family: inherit; font-size: 13px; font-weight: 500;
-      padding: 7px 14px; border-radius: var(--r); border: 1px solid transparent;
+      font-family: 'Inter', inherit; font-size: 13px; font-weight: 500;
+      padding: 7px 16px; border-radius: var(--r); border: 1px solid transparent;
       cursor: pointer; transition: all .15s; white-space: nowrap;
-      text-decoration: none;
+      text-decoration: none; letter-spacing: .01em;
     }
-    .btn-navy   { background: var(--navy); color: #fff; }
-    .btn-navy:hover { background: var(--navy-mid); }
-    .btn-outline { background: var(--surface); color: var(--text); border-color: var(--border); }
-    .btn-outline:hover { background: var(--surface-2); }
-    .btn-ghost  { background: none; border: none; color: var(--text-2); }
-    .btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+    .btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); border-radius: var(--rpill); }
+    .btn-primary:hover { background: var(--teal-ink); border-color: var(--teal-ink); }
+    .btn-navy   { background: var(--indigo); color: #fff; }
+    .btn-navy:hover { background: var(--indigo-mid); }
+    .btn-outline { background: var(--surface); color: var(--ink-2); border-color: var(--border); }
+    .btn-outline:hover { background: var(--teal-softer); border-color: var(--teal); color: var(--teal-ink); }
+    .btn-ghost  { background: none; border: none; color: var(--ink-3); }
+    .btn-ghost:hover { color: var(--ink); background: var(--surface-2); }
     .btn-danger { background: #fef2f2; color: var(--danger); border-color: #fecaca; }
     .btn-danger:hover { background: #fee2e2; }
-    .btn-sm { padding: 5px 10px; font-size: 12px; }
-    .btn-xs { padding: 3px 8px; font-size: 11px; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+    .btn-xs { padding: 3px 9px; font-size: 11px; }
     .btn-icon { padding: 5px; width: 28px; height: 28px; justify-content: center; border-radius: var(--r); }
     .btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
 
     /* ── BADGES ── */
     .badge {
       display: inline-flex; align-items: center;
-      font-size: 11px; font-weight: 500; padding: 2px 8px;
-      border-radius: 20px; white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: var(--rpill); white-space: nowrap;
     }
-    .b-navy   { background: var(--navy); color: #fff; }
-    .b-blue   { background: var(--blue-lt); color: var(--blue); }
+    .b-navy   { background: var(--indigo); color: #fff; }
+    .b-teal   { background: var(--teal-soft); color: var(--teal-ink); }
+    .b-blue   { background: var(--teal-soft); color: var(--teal-ink); }
     .b-green  { background: #dcfce7; color: #166534; }
     .b-purple { background: #ede9fe; color: #5b21b6; }
     .b-amber  { background: #fef3c7; color: #92400e; }
-    .b-gray   { background: #f1f5f9; color: var(--text-2); }
-    .b-check  { background: #f0fdf4; color: var(--success); }
+    .b-gray   { background: #f1f5f9; color: var(--ink-3); }
+    .b-check  { background: var(--teal-soft); color: var(--teal-ink); }
 
-    /* ── CARDS (marketplace) ── */
+    /* ── CARDS ── */
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -150,14 +218,21 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--rl); padding: 22px; box-shadow: var(--sh);
       display: flex; flex-direction: column; gap: 10px;
+      transition: box-shadow .2s, border-color .2s;
     }
+    .card:hover { box-shadow: var(--sh-md); border-color: #c8d9d6; }
     .card-top { display: flex; align-items: flex-start; gap: 10px; }
-    .card-top h3 { font-size: 14px; font-weight: 600; flex: 1; line-height: 1.3; }
-    .card-meta { font-size: 12px; color: var(--text-3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .card p   { font-size: 13px; color: var(--text-2); flex: 1; line-height: 1.55; }
+    .card-top h3 { font-size: 14px; font-weight: 600; color: var(--ink); flex: 1; line-height: 1.3; letter-spacing: -.01em; }
+    .card-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4);
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      letter-spacing: .04em;
+    }
+    .card p   { font-size: 13px; color: var(--ink-3); flex: 1; line-height: 1.55; }
     .card-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 
-    /* ── PERSONAS TAB (two-pane) ── */
+    /* ── PERSONAS TAB ── */
     .p-layout {
       display: grid;
       grid-template-columns: 240px 1fr;
@@ -175,33 +250,43 @@
       display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
     }
     .p-sidebar-top h2 {
-      font-size: 11px; font-weight: 700; color: var(--text-3);
-      text-transform: uppercase; letter-spacing: .1em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-4);
+      text-transform: uppercase; letter-spacing: .14em;
     }
     .p-list { flex: 1; overflow-y: auto; }
     .p-item {
       display: flex; align-items: center; gap: 10px;
-      padding: 12px 20px; cursor: pointer;
+      padding: 11px 20px; cursor: pointer;
       border-left: 2px solid transparent;
       transition: background .1s, border-color .1s;
     }
-    .p-item:hover  { background: var(--surface-2); }
-    .p-item.active { background: #eff6ff; border-left-color: var(--blue); }
+    .p-item:hover  { background: var(--teal-softer); }
+    .p-item.active { background: var(--teal-soft); border-left-color: var(--teal); }
     .p-item-info   { flex: 1; min-width: 0; }
-    .p-item-name   { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .p-item-meta   { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .p-item-name   { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .p-item-meta   {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4); margin-top: 2px; letter-spacing: .04em;
+    }
 
-    /* New persona inline form */
     .np-form {
-      padding: 16px 20px; background: var(--surface-2);
+      padding: 16px 20px; background: var(--bg);
       border-top: 1px solid var(--border); flex-shrink: 0;
     }
     .np-form h3 {
-      font-size: 11px; font-weight: 700; color: var(--text-2);
-      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px;
     }
     .ff { margin-bottom: 9px; }
-    .ff label { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); margin-bottom: 3px; }
+    .ff label {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-3);
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 3px;
+    }
     .ff input, .ff textarea, .ff select { width: 100%; font-size: 12px; }
     .ff textarea { resize: vertical; min-height: 52px; }
     .ff-row { display: flex; gap: 6px; margin-top: 10px; }
@@ -212,17 +297,16 @@
 
     .empty-state {
       flex: 1; display: flex; align-items: center; justify-content: center;
-      color: var(--text-3); font-size: 13px;
+      color: var(--ink-4); font-size: 13px;
     }
 
-    /* Detail */
     .det-header {
       background: var(--surface); border-bottom: 1px solid var(--border);
       padding: 26px 32px 20px; flex-shrink: 0;
     }
     .det-header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-    .det-header h2  { font-size: 20px; font-weight: 600; }
-    .det-desc       { font-size: 13px; color: var(--text-2); }
+    .det-header h2  { font-size: 19px; font-weight: 600; color: var(--indigo); letter-spacing: -.02em; }
+    .det-desc       { font-size: 13px; color: var(--ink-3); }
     .det-actions    { display: flex; gap: 8px; margin-top: 16px; }
 
     .mod-section { padding: 24px 32px; flex: 1; overflow-y: auto; }
@@ -232,19 +316,28 @@
       padding-bottom: 10px; margin-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
-    .rg-name  { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .08em; }
-    .rg-count { font-size: 11px; color: var(--text-3); }
+    .rg-name  {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: .12em;
+    }
+    .rg-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-4); letter-spacing: .04em; }
 
     .mod-row {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px; border: 1px solid var(--border);
       border-radius: var(--r); margin-bottom: 6px;
-      background: var(--surface);
+      background: var(--surface); transition: border-color .15s;
     }
+    .mod-row:hover { border-color: #c8d9d6; }
     .mod-info  { flex: 1; min-width: 0; }
-    .mod-name  { font-size: 13px; font-weight: 500; }
-    .mod-desc  { font-size: 11px; color: var(--text-2); margin-top: 1px; }
-    .mod-tok   { font-size: 11px; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .mod-name  { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .mod-desc  { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+    .mod-tok   {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4);
+      white-space: nowrap; letter-spacing: .04em;
+    }
 
     /* ── MODULE PICKER ── */
     .picker-shell { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -252,7 +345,7 @@
       background: var(--surface); border-bottom: 1px solid var(--border);
       padding: 16px 32px; display: flex; align-items: center; gap: 14px; flex-shrink: 0;
     }
-    .picker-head h2 { font-size: 15px; font-weight: 600; flex: 1; }
+    .picker-head h2 { font-size: 15px; font-weight: 600; color: var(--indigo); letter-spacing: -.01em; flex: 1; }
     .picker-body  { display: grid; grid-template-columns: 220px 1fr; flex: 1; overflow: hidden; }
 
     .pk-repos {
@@ -263,17 +356,20 @@
       padding: 12px 20px; cursor: pointer;
       border-left: 2px solid transparent; transition: background .1s;
     }
-    .pk-repo-item:hover  { background: var(--surface-2); }
-    .pk-repo-item.active { background: #eff6ff; border-left-color: var(--blue); }
-    .pk-repo-name  { font-size: 13px; font-weight: 500; }
-    .pk-repo-count { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .pk-repo-item:hover  { background: var(--teal-softer); }
+    .pk-repo-item.active { background: var(--teal-soft); border-left-color: var(--teal); }
+    .pk-repo-name  { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .pk-repo-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4); margin-top: 2px; letter-spacing: .04em;
+    }
 
-    .pk-mods { overflow-y: auto; padding: 20px 24px; background: var(--surface-2); }
+    .pk-mods { overflow-y: auto; padding: 20px 24px; background: var(--bg); }
     .pk-mods-top {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 14px;
     }
-    .pk-mods-top h3 { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .pk-mods-top h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 
     .pk-mod-row {
       display: flex; align-items: center; gap: 10px;
@@ -283,24 +379,31 @@
       transition: border-color .15s;
       user-select: none;
     }
-    .pk-mod-row:hover   { border-color: #93c5fd; }
-    .pk-mod-row.checked { border-color: var(--blue); background: #eff6ff; }
+    .pk-mod-row:hover   { border-color: #9dd0cc; }
+    .pk-mod-row.checked { border-color: var(--teal); background: var(--teal-softer); }
     .pk-mod-row input[type=checkbox] {
       width: 15px; height: 15px; flex-shrink: 0;
-      accent-color: var(--blue); cursor: pointer; border: none; padding: 0;
+      accent-color: var(--teal); cursor: pointer; border: none; padding: 0;
     }
 
     /* ── SESSION TAB ── */
-    .s-layout { display: grid; grid-template-columns: 1fr 290px; min-height: calc(100vh - 54px); }
+    .s-layout { display: grid; grid-template-columns: 1fr 300px; min-height: calc(100vh - 54px); }
     .s-main   { padding: 36px; overflow-y: auto; }
 
     .step { margin-bottom: 40px; }
     .step-lbl {
-      font-size: 11px; font-weight: 700; color: var(--text-3);
-      text-transform: uppercase; letter-spacing: .12em;
-      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--teal);
+      text-transform: uppercase; letter-spacing: .16em;
+      margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
     }
-    .step-num { color: var(--blue); }
+    .step-lbl::before {
+      content: '';
+      display: inline-block;
+      width: 20px; height: 1px;
+      background: var(--teal);
+      opacity: .5;
+    }
 
     .persona-card {
       background: var(--surface); border: 1px solid var(--border);
@@ -308,7 +411,7 @@
       align-items: center; gap: 12px;
     }
     .persona-card select { flex: 1; }
-    .persona-card-desc { font-size: 12px; color: var(--text-2); margin-top: 10px; padding: 0 2px; }
+    .persona-card-desc { font-size: 12px; color: var(--ink-3); margin-top: 10px; padding: 0 2px; }
 
     .sess-mods { display: flex; flex-direction: column; gap: 6px; }
     .sess-mod-row {
@@ -317,11 +420,11 @@
       border: 1px solid var(--border); border-radius: var(--r);
       cursor: pointer; transition: border-color .15s;
     }
-    .sess-mod-row.on  { border-left: 3px solid var(--blue); }
+    .sess-mod-row.on  { border-left: 3px solid var(--teal); }
     .sess-mod-row.off { opacity: .45; }
-    .sess-mod-row:hover { border-color: #93c5fd; }
+    .sess-mod-row:hover { border-color: #9dd0cc; }
 
-    /* Toggle switch */
+    /* Toggle */
     .tog { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
     .tog input { opacity: 0; width: 0; height: 0; position: absolute; }
     .tog-sl {
@@ -333,71 +436,133 @@
       width: 12px; height: 12px; left: 3px; bottom: 3px;
       background: white; border-radius: 50%; transition: .2s;
     }
-    .tog input:checked + .tog-sl { background: var(--blue); }
+    .tog input:checked + .tog-sl { background: var(--teal); }
     .tog input:checked + .tog-sl::before { transform: translateX(16px); }
 
     /* Session sidebar */
     .s-sidebar {
       background: var(--surface); border-left: 1px solid var(--border);
-      padding: 28px 22px; display: flex; flex-direction: column; gap: 26px;
+      padding: 0; display: flex; flex-direction: column;
+      overflow-y: auto;
     }
-    .s-sidebar h3 {
-      font-size: 11px; font-weight: 700; color: var(--text-2);
-      text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px;
+    .sidebar-section {
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section:last-child { border-bottom: none; }
+    .sidebar-section h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-4);
+      text-transform: uppercase; letter-spacing: .14em;
+      margin-bottom: 12px;
     }
 
-    .tok-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
-    .tok-fill  { height: 100%; border-radius: 3px; transition: width .3s, background .3s; background: var(--blue); }
-    .tok-lbl   { font-size: 12px; color: var(--text-2); }
-    .tok-lbl strong { color: var(--text); }
+    /* Token bar */
+    .tok-track { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+    .tok-fill  { height: 100%; border-radius: 3px; transition: width .3s, background .3s; background: var(--teal); }
+    .tok-lbl   {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--ink-3); letter-spacing: .04em;
+    }
+    .tok-lbl strong { color: var(--ink); }
 
+    /* Context summary */
+    .ctx-empty { font-size: 12px; color: var(--ink-4); font-style: italic; }
+    .ctx-group { margin-bottom: 10px; }
+    .ctx-repo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 500; color: var(--teal);
+      text-transform: uppercase; letter-spacing: .1em;
+      margin-bottom: 4px;
+    }
+    .ctx-mod {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 3px 0; border-bottom: 1px solid var(--border-2);
+    }
+    .ctx-mod:last-child { border-bottom: none; }
+    .ctx-mod-name { font-size: 12px; color: var(--ink-2); }
+    .ctx-tok {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4); letter-spacing: .03em;
+    }
+
+    /* MCP rows */
     .mcp-row {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0; border-bottom: 1px solid var(--border);
+      padding: 8px 0; border-bottom: 1px solid var(--border-2);
     }
     .mcp-row:last-child { border-bottom: none; }
-    .mcp-nm  { font-size: 13px; font-weight: 500; }
-    .mcp-sys { font-size: 11px; color: var(--text-3); }
+    .mcp-nm  { font-size: 13px; font-weight: 500; color: var(--ink); }
+    .mcp-sys {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ink-4); letter-spacing: .04em; margin-top: 1px;
+    }
+    .mcp-tools-list { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
+    .mcp-tool-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: .04em;
+      background: var(--teal-softer); color: var(--teal-ink);
+      border: 1px solid var(--teal-soft);
+      padding: 1px 6px; border-radius: var(--rpill);
+    }
 
+    /* Launch button */
     .launch-btn {
       width: 100%; justify-content: center;
-      padding: 11px; font-size: 14px; font-weight: 600;
-      border-radius: var(--rl); margin-top: auto;
+      padding: 12px; font-size: 14px; font-weight: 600;
+      border-radius: var(--rpill); letter-spacing: .01em;
     }
+    .launch-section {
+      padding: 20px 22px;
+      margin-top: auto;
+    }
+
+    /* Model input section */
+    .model-input { width: 100%; }
 
     /* ── MISC ── */
     .divider { border: none; border-top: 1px solid var(--border); }
-    .loading { color: var(--text-3); font-size: 13px; padding: 12px 0; }
+    .loading { color: var(--ink-4); font-size: 13px; padding: 12px 0; }
     .toast {
       position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-      font-size: 13px; padding: 10px 16px; border-radius: var(--r);
+      font-size: 13px; padding: 10px 16px; border-radius: var(--rl);
       box-shadow: var(--sh-md); min-width: 220px;
-      animation: fadein .2s;
+      animation: fadein .2s; font-weight: 500;
     }
-    .toast.ok  { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .toast.ok  { background: var(--teal-soft); color: var(--teal-ink); border: 1px solid rgba(54,153,150,.3); }
     .toast.err { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
     @keyframes fadein { from { opacity: 0; transform: translateY(6px); } }
 
     .group-label {
-      font-size: 11px; font-weight: 600; color: var(--text-3);
-      text-transform: uppercase; letter-spacing: .06em;
-      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 500; color: var(--ink-3);
+      text-transform: uppercase; letter-spacing: .1em;
+      margin-bottom: 6px;
     }
     .group-block { margin-bottom: 20px; }
+
+    /* Scrollbar (subtle) */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #c8d9d6; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">LATTICE</div>
+  <div class="brand">
+    <span class="brand-word">Lattice</span><span class="brand-poc">poc</span>
+  </div>
   <nav>
     <button id="nb-marketplace" onclick="switchTab('marketplace')" class="active">Marketplace</button>
     <button id="nb-personas"    onclick="switchTab('personas')">My Personas</button>
     <button id="nb-session"     onclick="switchTab('session')">Session</button>
   </nav>
   <div class="nav-right">
-    <span id="oc-pill" class="oc-pill off">OpenCode off</span>
-    <button class="btn btn-ghost btn-sm" id="oc-stop" onclick="stopOC()" style="display:none;color:rgba(255,255,255,.6)">Stop</button>
+    <span id="sess-badge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:rgba(255,255,255,.5);max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <span id="oc-pill" class="oc-pill off">Offline</span>
+    <button class="btn btn-ghost btn-sm" id="oc-stop" onclick="stopOC()" style="display:none;color:rgba(255,255,255,.5);font-size:12px;">Stop</button>
   </div>
 </header>
 
@@ -447,7 +612,7 @@
           </select>
         </div>
         <div class="ff-row">
-          <button class="btn btn-navy btn-sm" onclick="createPersona()">Create</button>
+          <button class="btn btn-primary btn-sm" onclick="createPersona()">Create</button>
           <button class="btn btn-outline btn-sm" onclick="toggleNP()">Cancel</button>
         </div>
       </div>
@@ -466,7 +631,7 @@
           </div>
           <div id="d-desc" class="det-desc"></div>
           <div class="det-actions">
-            <button class="btn btn-navy btn-sm" onclick="goSession()">Configure Session →</button>
+            <button class="btn btn-primary btn-sm" onclick="goSession()">Configure Session →</button>
             <button class="btn btn-outline btn-sm" onclick="openPicker()">+ Add Modules</button>
             <button class="btn btn-danger btn-sm" onclick="deletePersona()">Delete</button>
           </div>
@@ -504,7 +669,7 @@
 
       <!-- 01 Persona -->
       <div class="step">
-        <div class="step-lbl"><span class="step-num">01</span> Select Persona</div>
+        <div class="step-lbl">01 · Select Persona</div>
         <div class="persona-card">
           <select id="sess-p" onchange="sessPersonaChange()" style="max-width:280px">
             <option value="">— choose a persona —</option>
@@ -516,7 +681,7 @@
 
       <!-- 02 Modules -->
       <div class="step">
-        <div class="step-lbl"><span class="step-num">02</span> Configure Modules</div>
+        <div class="step-lbl">02 · Configure Context Modules</div>
         <div id="sess-mods" class="sess-mods">
           <p class="loading">Select a persona above.</p>
         </div>
@@ -527,23 +692,37 @@
     <!-- Sidebar -->
     <aside class="s-sidebar">
 
-      <div>
-        <h3>Token Budget</h3>
+      <!-- Token Budget -->
+      <div class="sidebar-section">
+        <h3>Context Tokens</h3>
         <div class="tok-track"><div class="tok-fill" id="tok-fill" style="width:0%"></div></div>
         <div class="tok-lbl"><strong id="tok-used">0</strong> / 2,000 tokens</div>
       </div>
 
-      <div>
-        <h3>MCP Servers</h3>
+      <!-- Context Loaded -->
+      <div class="sidebar-section">
+        <h3>Context Loaded</h3>
+        <div id="ctx-summary">
+          <p class="ctx-empty">No modules enabled</p>
+        </div>
+      </div>
+
+      <!-- MCP Servers -->
+      <div class="sidebar-section">
+        <h3>MCP Tools</h3>
         <div id="sess-mcps"></div>
       </div>
 
-      <div>
+      <!-- Model -->
+      <div class="sidebar-section">
         <h3>Model</h3>
-        <input id="sess-model" placeholder="ollama/qwen3:8b" style="width:100%">
+        <input id="sess-model" class="model-input" placeholder="ollama/qwen3:8b">
       </div>
 
-      <button class="btn btn-navy launch-btn" onclick="launch()">Launch Session →</button>
+      <!-- Launch -->
+      <div class="launch-section">
+        <button class="btn btn-primary launch-btn" onclick="launch()">Launch Session →</button>
+      </div>
 
     </aside>
   </div>
@@ -559,18 +738,15 @@ const S = {
   contextRepos: [],
   personas: [],
 
-  // personas tab
   activeId: null,
-  personaMods: [],     // modules in active persona (with repo_name, repo_id)
+  personaMods: [],
 
-  // picker
   pickRepoId: null,
-  pickRepoMods: [],    // all modules in picker's selected repo
+  pickRepoMods: [],
 
-  // session
   sessId: null,
   sessMods: [],
-  sessOn: new Set(),   // persona_module IDs enabled for this session
+  sessOn: new Set(),
   sessMcps: new Set(),
 };
 
@@ -591,11 +767,11 @@ async function api(method, path, body) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function typeBadge(t) {
-  const m = { skill: 'b-blue', blueprint: 'b-purple', agent: 'b-green', command: 'b-amber' };
+  const m = { skill: 'b-teal', blueprint: 'b-purple', agent: 'b-green', command: 'b-amber' };
   return `<span class="badge ${m[t] || 'b-gray'}">${t || 'skill'}</span>`;
 }
 function scopeBadge(s) {
-  const m = { private: 'b-gray', team: 'b-blue', public: 'b-green' };
+  const m = { private: 'b-gray', team: 'b-teal', public: 'b-green' };
   return `<span class="badge ${m[s] || 'b-gray'}">${s}</span>`;
 }
 function fmt(n) { return n ? n.toLocaleString() + 't' : ''; }
@@ -622,12 +798,36 @@ function switchTab(name) {
 // ── Status ────────────────────────────────────────────────────────────────────
 async function pollStatus() {
   try {
-    const d = await api('GET', '/api/status');
+    const [status, session] = await Promise.all([
+      api('GET', '/api/status'),
+      api('GET', '/api/session').catch(() => ({ active: false })),
+    ]);
+
     const pill = document.getElementById('oc-pill');
     const stop = document.getElementById('oc-stop');
-    pill.className = `oc-pill ${d.opencode_running ? 'on' : 'off'}`;
-    pill.textContent = d.opencode_running ? `OpenCode · pid ${d.pid}` : 'OpenCode off';
-    stop.style.display = d.opencode_running ? '' : 'none';
+    const badge = document.getElementById('sess-badge');
+
+    // Running pill
+    const running = status.opencode_running || status.webui_up;
+    if (running) {
+      pill.className = 'oc-pill on';
+      pill.textContent = status.pid ? `Running · pid ${status.pid}` : 'Running';
+      stop.style.display = status.opencode_running ? '' : 'none';
+    } else {
+      pill.className = 'oc-pill off';
+      pill.textContent = 'Offline';
+      stop.style.display = 'none';
+    }
+
+    // Session badge — shows persona, module count, MCP list
+    if (session.active) {
+      const mods = (session.modules || []).length;
+      const mcps = (session.mcps || []).join(' · ') || 'no tools';
+      badge.textContent = `${session.persona?.name || ''}  ·  ${mods} module${mods !== 1 ? 's' : ''}  ·  ${mcps}`;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
   } catch (_) {}
 }
 async function stopOC() { await api('POST', '/api/stop'); pollStatus(); }
@@ -659,8 +859,8 @@ function renderMarket() {
         <p>${r.description || ''}</p>
         <div class="card-foot">
           ${r.added
-            ? `<span class="badge b-green">✓ Added</span>`
-            : `<button class="btn btn-navy btn-sm" onclick='addRepo(${JSON.stringify({id:r.id,name:r.name,description:r.description||"",repo_url:r.repo_url})})'>Add to Lattice</button>`
+            ? `<span class="badge b-teal">✓ Added</span>`
+            : `<button class="btn btn-primary btn-sm" onclick='addRepo(${JSON.stringify({id:r.id,name:r.name,description:r.description||"",repo_url:r.repo_url})})'>Add to Lattice</button>`
           }
         </div>
       </div>
@@ -733,7 +933,7 @@ async function selectPersona(id) {
   document.getElementById('d-name').textContent = p.name;
   document.getElementById('d-desc').textContent = p.description || '';
   const sb = document.getElementById('d-scope');
-  sb.className = `badge ${p.scope === 'team' ? 'b-blue' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
+  sb.className = `badge ${p.scope === 'team' ? 'b-teal' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
   sb.textContent = p.scope;
 
   renderModList();
@@ -743,10 +943,9 @@ async function selectPersona(id) {
 function renderModList() {
   const el = document.getElementById('mod-list');
   if (!S.personaMods.length) {
-    el.innerHTML = '<p style="color:var(--text-3);font-size:13px">No modules yet. Click "+ Add Modules" to add from any repo.</p>';
+    el.innerHTML = '<p style="color:var(--ink-4);font-size:13px">No modules yet. Click "+ Add Modules" to add from any repo.</p>';
     return;
   }
-  // Group by repo
   const g = {};
   for (const m of S.personaMods) {
     if (!g[m.repo_id]) g[m.repo_id] = { name: m.repo_name, mods: [] };
@@ -877,7 +1076,7 @@ async function addAll() {
     toast(`${r.count} module${r.count !== 1 ? 's' : ''} added`);
     const d = await api('GET', `/api/personas/${S.activeId}`);
     S.personaMods = d.modules;
-    const p = S.personas.find(p => p.id === S.activeId);
+    const p = S.personas.find(p => p.id === S.pickRepoId);
     if (p) p.module_count = S.personaMods.length;
     renderPList();
     const repo = S.contextRepos.find(r => r.id === S.pickRepoId);
@@ -896,7 +1095,15 @@ async function initSession() {
 
   document.getElementById('sess-mcps').innerHTML = S.mcps.map(m => `
     <div class="mcp-row">
-      <div><div class="mcp-nm">${m.id}</div><div class="mcp-sys">${m.systems.join(', ')}</div></div>
+      <div>
+        <div class="mcp-nm">${m.id}</div>
+        <div class="mcp-sys">${m.systems.join(' · ')}</div>
+        ${m.tools && m.tools.length ? `
+          <div class="mcp-tools-list">
+            ${m.tools.map(t => `<span class="mcp-tool-pill">${t}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
       <label class="tog">
         <input type="checkbox" checked onchange="toggleMcp('${m.id}',this.checked)">
         <span class="tog-sl"></span>
@@ -923,7 +1130,7 @@ async function sessPersonaChange() {
 
   desc.textContent = p.description || '';
   scope.style.display = '';
-  scope.className = `badge ${p.scope === 'team' ? 'b-blue' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
+  scope.className = `badge ${p.scope === 'team' ? 'b-teal' : p.scope === 'public' ? 'b-green' : 'b-gray'}`;
   scope.textContent = p.scope;
 
   const d = await api('GET', `/api/personas/${S.sessId}`);
@@ -936,7 +1143,7 @@ async function sessPersonaChange() {
 function renderSessMods() {
   const el = document.getElementById('sess-mods');
   if (!S.sessMods.length) {
-    el.innerHTML = '<p style="color:var(--text-3);font-size:13px">This persona has no modules. Add some in My Personas.</p>';
+    el.innerHTML = '<p style="color:var(--ink-4);font-size:13px">This persona has no modules. Add some in My Personas.</p>';
     return;
   }
   const g = {};
@@ -980,8 +1187,35 @@ function updateTok() {
   const pct = Math.min(100, (total / 2000) * 100);
   const fill = document.getElementById('tok-fill');
   fill.style.width = `${pct}%`;
-  fill.style.background = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--blue)';
+  fill.style.background = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--teal)';
   document.getElementById('tok-used').textContent = total.toLocaleString();
+  updateCtxSummary();
+}
+
+function updateCtxSummary() {
+  const el = document.getElementById('ctx-summary');
+  if (!el) return;
+  const enabled = S.sessMods.filter(m => S.sessOn.has(m.id));
+  if (!enabled.length) {
+    el.innerHTML = '<p class="ctx-empty">No modules enabled</p>';
+    return;
+  }
+  const g = {};
+  for (const m of enabled) {
+    if (!g[m.repo_id]) g[m.repo_id] = { name: m.repo_name, mods: [] };
+    g[m.repo_id].mods.push(m);
+  }
+  el.innerHTML = Object.values(g).map(grp => `
+    <div class="ctx-group">
+      <div class="ctx-repo">${grp.name}</div>
+      ${grp.mods.map(m => `
+        <div class="ctx-mod">
+          <span class="ctx-mod-name">${m.name}</span>
+          ${m.tokens ? `<span class="ctx-tok">${m.tokens.toLocaleString()}t</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
 
 async function launch() {
@@ -995,7 +1229,7 @@ async function launch() {
       enabled_mcps: [...S.sessMcps],
       model,
     });
-    toast('Session launched — opening OpenCode');
+    toast('Session launched — opening chat');
     setTimeout(() => window.open(d.redirect, '_blank'), 800);
     pollStatus();
   } catch (e) { toast(e.message, false); }

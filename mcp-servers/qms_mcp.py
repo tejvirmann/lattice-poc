@@ -12,7 +12,13 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 DB_PATH = Path(__file__).parent.parent / "databases" / "qms.db"
-mcp = FastMCP("qms", description="QMS — batch records, deviations, CAPAs, specifications, audits")
+mcp = FastMCP("qms", instructions="QMS — batch records, deviations, CAPAs, specifications, audits")
+
+
+@mcp.tool()
+def health() -> dict:
+    """Return server health status."""
+    return {"status": "ok", "server": "qms", "db": str(DB_PATH)}
 
 
 def _conn():

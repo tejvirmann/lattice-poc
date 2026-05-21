@@ -12,7 +12,13 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 DB_PATH = Path(__file__).parent.parent / "databases" / "rosetta.db"
-mcp = FastMCP("rosetta", description="Rosetta — normalize terms, units, and compound names across systems")
+mcp = FastMCP("rosetta", instructions="Rosetta — normalize terms, units, and compound names across systems")
+
+
+@mcp.tool()
+def health() -> dict:
+    """Return server health status."""
+    return {"status": "ok", "server": "rosetta", "db": str(DB_PATH)}
 
 
 def _conn():

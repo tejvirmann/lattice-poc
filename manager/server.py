@@ -21,13 +21,15 @@ Personas:
   PATCH /api/personas/:id/modules/:mid  → toggle enabled default
 
 Session:
-  POST /api/launch                     → write opencode.jsonc + restart OpenCode
-  GET  /api/status                     → OpenCode process status
-  POST /api/stop                       → stop OpenCode
+  POST /api/launch                     → configure harness and return redirect URL
+  GET  /api/status                     → harness process / service status
+  POST /api/stop                       → stop managed processes
 
 Misc:
   GET  /api/mcps                       → MCP list from registry/mcps.json
   GET  /api/marketplace                → marketplace catalog
+  GET  /api/harness                    → which harness is active
+  GET  /api/session                    → active session: persona, modules, MCPs loaded
 """
 
 import json
@@ -37,9 +39,10 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
+import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
@@ -48,8 +51,22 @@ DB_PATH = ROOT / "databases" / "context.db"
 SYNC = ROOT / "scripts" / "sync_personas.py"
 TEMPLATES = Path(__file__).parent / "templates"
 
+# "openwebui" (default) or "opencode"
+HARNESS = os.getenv("HARNESS", "openwebui")
+
 app = FastAPI(title="Lattice Manager")
-_opencode_proc: subprocess.Popen | None = None
+
+# Allow Open WebUI (localhost:4000) to call /api/session for the sidebar panel
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4000", "http://127.0.0.1:4000"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+_proc: subprocess.Popen | None = None   # OpenCode web process (opencode harness only)
+_mcpo_proc: subprocess.Popen | None = None
+_active_session: dict | None = None    # Last successfully launched session
 
 
 # ---------------------------------------------------------------------------
@@ -71,31 +88,40 @@ def _one(conn, q, p=()):
 
 
 # ---------------------------------------------------------------------------
-# OpenCode process management
+# MCPO process management (both harnesses)
 # ---------------------------------------------------------------------------
 
-def start_opencode():
-    global _opencode_proc
-    stop_opencode()
-    _opencode_proc = subprocess.Popen(
-        ["opencode", "web"],
+def start_mcpo():
+    global _mcpo_proc
+    if _mcpo_proc and _mcpo_proc.poll() is None:
+        return
+    mcpo_port = os.getenv("MCPO_PORT", "8001")
+    mcpo_cfg = ROOT / "mcpo.json"
+    if not mcpo_cfg.exists():
+        print("  mcpo.json not found — skipping MCPO start")
+        return
+    _mcpo_proc = subprocess.Popen(
+        ["uvx", "mcpo", "--port", mcpo_port, "--config", str(mcpo_cfg)],
         cwd=ROOT,
-        env={**os.environ, "OPENCODE_CONFIG": str(ROOT / "opencode.jsonc")},
     )
-    print(f"  OpenCode started (pid {_opencode_proc.pid})")
+    print(f"  MCPO started (pid {_mcpo_proc.pid})")
 
 
-def stop_opencode():
-    global _opencode_proc
-    if _opencode_proc and _opencode_proc.poll() is None:
-        _opencode_proc.terminate()
+def stop_mcpo():
+    global _mcpo_proc
+    if _mcpo_proc and _mcpo_proc.poll() is None:
+        _mcpo_proc.terminate()
         try:
-            _opencode_proc.wait(timeout=5)
+            _mcpo_proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            _opencode_proc.kill()
-        print("  OpenCode stopped")
-    _opencode_proc = None
+            _mcpo_proc.kill()
+        print("  MCPO stopped")
+    _mcpo_proc = None
 
+
+# ---------------------------------------------------------------------------
+# OpenCode harness helpers
+# ---------------------------------------------------------------------------
 
 def _resolve_model(override: str = "") -> str:
     if override:
@@ -121,19 +147,309 @@ def _resolve_model(override: str = "") -> str:
 def _write_opencode_config(instruction_paths: list[str], mcp_ids: list[str], model: str) -> None:
     mcps_file = ROOT / "registry" / "mcps.json"
     all_mcps = json.loads(mcps_file.read_text()) if mcps_file.exists() else {}
-    mcp_section = {
-        k: {"type": "local", "command": v["command"], "enabled": True}
-        for k, v in all_mcps.items()
-        if k in mcp_ids
-    }
+    mcp_section = {}
+    for k, v in all_mcps.items():
+        if k in mcp_ids:
+            cmd = v["command"]
+            mcp_section[k] = {
+                "type": "local",
+                "command": cmd[0] if isinstance(cmd, list) else cmd,
+                "args": cmd[1:] if isinstance(cmd, list) else [],
+                "enabled": True,
+            }
     config = {
         "$schema": "https://opencode.ai/config.json",
         "model": model,
-        "instructions": [str(ROOT / "registry" / "context.md")] + instruction_paths,
+        "instructions": instruction_paths,
         "mcp": mcp_section,
-        "server": {"hostname": "0.0.0.0", "port": 4000},
+        "server": {"hostname": "0.0.0.0", "port": int(os.getenv("OPENCODE_PORT", "4000"))},
     }
     (ROOT / "opencode.jsonc").write_text(json.dumps(config, indent=2))
+
+
+def start_opencode():
+    global _proc
+    stop_opencode()
+    _proc = subprocess.Popen(
+        ["opencode", "web"],
+        cwd=ROOT,
+        env={**os.environ, "OPENCODE_CONFIG": str(ROOT / "opencode.jsonc")},
+    )
+    print(f"  OpenCode started (pid {_proc.pid})")
+
+
+def stop_opencode():
+    global _proc
+    if _proc and _proc.poll() is None:
+        _proc.terminate()
+        try:
+            _proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _proc.kill()
+        print("  OpenCode stopped")
+    _proc = None
+
+
+# ---------------------------------------------------------------------------
+# Open WebUI harness helpers
+# ---------------------------------------------------------------------------
+
+def _strip_frontmatter(text: str) -> str:
+    if text.startswith("---"):
+        end = text.find("---", 3)
+        if end != -1:
+            return text[end + 3:].lstrip("\n")
+    return text
+
+
+_webui_token_cache: str | None = None
+
+
+def _get_webui_token(webui_url: str) -> str:
+    global _webui_token_cache
+    if _webui_token_cache:
+        return _webui_token_cache
+    email = os.getenv("OPENWEBUI_ADMIN_EMAIL", "admin@localhost")
+    password = os.getenv("OPENWEBUI_ADMIN_PASSWORD", "admin")
+    with httpx.Client(timeout=10) as client:
+        r = client.post(
+            f"{webui_url}/api/v1/auths/signin",
+            json={"email": email, "password": password},
+        )
+        if r.status_code != 200:
+            raise RuntimeError(
+                f"Open WebUI signin failed ({r.status_code}). "
+                f"Set OPENWEBUI_API_KEY in .env (generate one in Open WebUI → Settings → Account → API Keys), "
+                f"or set OPENWEBUI_ADMIN_EMAIL / OPENWEBUI_ADMIN_PASSWORD to match your Open WebUI login."
+            )
+        _webui_token_cache = r.json()["token"]
+    return _webui_token_cache
+
+
+def _webui_headers(webui_url: str = "") -> dict:
+    """Return auth headers. Raises if auth cannot be established."""
+    headers = {"Content-Type": "application/json"}
+    api_key = os.getenv("OPENWEBUI_API_KEY", "")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    elif webui_url:
+        headers["Authorization"] = f"Bearer {_get_webui_token(webui_url)}"
+    return headers
+
+
+def _register_mcp_servers(selected_mcp_ids: list[str], webui_url: str) -> bool:
+    """Upsert selected MCPs as tool server connections in Open WebUI. Returns True on success."""
+    if not selected_mcp_ids:
+        return True
+
+    # Open WebUI (Docker) reaches MCPO via host.docker.internal; local → localhost
+    mcpo_base = os.getenv(
+        "OPENWEBUI_MCPO_URL",
+        f"http://host.docker.internal:{os.getenv('MCPO_PORT', '8001')}",
+    )
+    headers = _webui_headers(webui_url)
+    with httpx.Client(timeout=10) as client:
+        # Fetch existing connections — body is {"TOOL_SERVER_CONNECTIONS": [...]}
+        r = client.get(f"{webui_url}/api/v1/configs/tool_servers", headers=headers)
+        raw = r.json() if r.status_code == 200 else {}
+        existing = raw.get("TOOL_SERVER_CONNECTIONS", []) if isinstance(raw, dict) else []
+
+        # Drop any previously registered Lattice/MCPO entries, re-add selected ones
+        kept = [s for s in existing if isinstance(s, dict) and not str(s.get("url", "")).startswith(mcpo_base)]
+        new_connections = kept + [
+            {
+                "url": f"{mcpo_base}/{mid}",
+                "path": "/openapi.json",
+                "type": "openapi",
+                "auth_type": None,
+                "headers": None,
+                "key": None,
+                "config": None,
+            }
+            for mid in selected_mcp_ids
+        ]
+
+        r2 = client.post(
+            f"{webui_url}/api/v1/configs/tool_servers",
+            json={"TOOL_SERVER_CONNECTIONS": new_connections},
+            headers=headers,
+        )
+        if r2.status_code not in (200, 201):
+            # Non-fatal — context will still work; MCPs can be added manually in Open WebUI admin
+            print(f"  Warning: MCP tool server registration returned {r2.status_code}: {r2.text[:200]}")
+            return False
+    return True
+
+
+WEBUI_SUGGESTIONS = [
+    {
+        "title": ["What MCP tools", "do I have?"],
+        "content": "List all the MCP servers and tools available in this session. For each one, describe what systems it connects to and what operations it can perform.",
+    },
+    {
+        "title": ["What context", "is loaded?"],
+        "content": "Summarize all the context modules loaded in your system prompt — what repos they're from, what each one covers, and the total token count.",
+    },
+    {
+        "title": ["Query LIMS", "for recent samples"],
+        "content": "Use the LIMS MCP tool to show me the most recently created samples or batches.",
+    },
+    {
+        "title": ["Check QMS", "for open deviations"],
+        "content": "Use the QMS MCP tool to list any open deviations or non-conformances.",
+    },
+]
+
+
+def _set_webui_suggestions(webui_url: str, headers: dict) -> None:
+    try:
+        with httpx.Client(timeout=5) as client:
+            r = client.post(
+                f"{webui_url}/api/v1/configs/suggestions",
+                json=WEBUI_SUGGESTIONS,
+                headers=headers,
+            )
+            if r.status_code not in (200, 201):
+                print(f"  Warning: suggestions update returned {r.status_code}: {r.text[:100]}")
+    except Exception as e:
+        print(f"  Warning: could not set suggestions: {e}")
+
+
+def _set_webui_banner(webui_url: str, headers: dict, persona: dict, modules: list[dict], mcp_ids: list[str]) -> None:
+    """Push a live banner to Open WebUI showing active context + MCPs."""
+    repos: dict[str, list[str]] = {}
+    for m in modules:
+        rname = m.get("repo_name") or m.get("repo_id", "context")
+        repos.setdefault(rname, []).append(m["name"])
+
+    ctx_parts = [
+        f"{rname}: {', '.join(mods[:3])}{'…' if len(mods) > 3 else ''}"
+        for rname, mods in repos.items()
+    ]
+    content = "  |  ".join([
+        f"**Context:** {' · '.join(ctx_parts) if ctx_parts else 'none'}",
+        f"**MCP Tools:** {', '.join(mcp_ids) if mcp_ids else 'none'}",
+    ])
+    banner = [{
+        "id": "lattice-session",
+        "type": "info",
+        "title": f"Lattice session: {persona['name']}",
+        "content": content,
+        "dismissible": True,
+        "timestamp": int(datetime.now(timezone.utc).timestamp()),
+    }]
+    try:
+        with httpx.Client(timeout=5) as client:
+            r = client.post(f"{webui_url}/api/v1/configs/banners", json=banner, headers=headers)
+            if r.status_code not in (200, 201):
+                print(f"  Warning: banner update returned {r.status_code}: {r.text[:120]}")
+    except Exception as e:
+        print(f"  Warning: could not set banner: {e}")
+
+
+def _push_to_openwebui(
+    persona: dict, modules: list[dict], selected_mcp_ids: list[str], model_override: str
+) -> tuple[str, dict]:
+    """Compile system prompt, register MCPs, upsert model preset. Returns (redirect_url, summary)."""
+    webui_url = os.getenv("OPENWEBUI_URL", "http://localhost:4000").rstrip("/")
+    headers = _webui_headers(webui_url)
+
+    # ── Session header prepended to the system prompt ─────────────────────────
+    repos: dict[str, list[dict]] = {}
+    for m in modules:
+        rname = m.get("repo_name") or m.get("repo_id", "context")
+        repos.setdefault(rname, []).append(m)
+
+    header_lines = [f"# Lattice Session: {persona['name']}", "", "## Context Loaded"]
+    for rname, mods in repos.items():
+        header_lines.append(f"### {rname}")
+        for m in mods:
+            tok = f"  ({m['tokens']:,} tokens)" if m.get("tokens") else ""
+            header_lines.append(f"- **{m['name']}**{tok}")
+
+    if selected_mcp_ids:
+        header_lines += ["", "## MCP Tools Available"]
+        mcps_file = ROOT / "registry" / "mcps.json"
+        all_mcps = json.loads(mcps_file.read_text()) if mcps_file.exists() else {}
+        for mid in selected_mcp_ids:
+            meta = all_mcps.get(mid, {})
+            systems = " · ".join(meta.get("systems", []))
+            desc = meta.get("description", "")
+            detail = f" — {systems}" if systems else (f" — {desc}" if desc else "")
+            header_lines.append(f"- **{mid}**{detail}")
+
+    header = "\n".join(header_lines) + "\n\n---\n\n"
+
+    # ── Content from module files ─────────────────────────────────────────────
+    loaded_files, missing_files, content_parts = [], [], []
+    for m in modules:
+        full_path = Path(m["local_path"]) / m["path"]
+        if full_path.exists():
+            content_parts.append(_strip_frontmatter(full_path.read_text()).strip())
+            loaded_files.append(m["path"])
+        else:
+            missing_files.append(m["path"])
+    system_prompt = header + "\n\n---\n\n".join(content_parts)
+
+    # ── Model description (shown in the model-selector tooltip) ──────────────
+    desc_parts = []
+    if persona.get("description"):
+        desc_parts += [persona["description"], ""]
+    desc_parts.append("**Context:** " + (", ".join(m["name"] for m in modules) or "none"))
+    desc_parts.append("**Tools:** " + (", ".join(selected_mcp_ids) or "none"))
+    model_description = "\n".join(desc_parts)
+
+    # ── Base model ────────────────────────────────────────────────────────────
+    base_model = os.getenv("OPENWEBUI_BASE_MODEL") or os.getenv("OLLAMA_MODEL", "qwen3:8b")
+    if model_override:
+        base_model = model_override.split("/", 1)[-1] if "/" in model_override else model_override
+
+    model_id = f"lattice-{persona['id']}"
+    payload = {
+        "id": model_id,
+        "name": persona["name"],
+        "base_model_id": base_model,
+        "params": {"system": system_prompt},
+        "meta": {
+            "description": model_description,
+            "tags": [{"name": mid} for mid in selected_mcp_ids],
+        },
+    }
+
+    # Register MCPs (non-fatal — context works regardless)
+    if selected_mcp_ids:
+        mcp_ok = _register_mcp_servers(selected_mcp_ids, webui_url)
+        mcp_status = "registered" if mcp_ok else "failed (add manually: Open WebUI Admin → Tool Servers)"
+    else:
+        mcp_status = "none selected"
+    _set_webui_suggestions(webui_url, headers)
+    _set_webui_banner(webui_url, headers, persona, modules, selected_mcp_ids)
+
+    with httpx.Client(timeout=10) as client:
+        r = client.post(f"{webui_url}/api/v1/models/create", json=payload, headers=headers)
+        if r.status_code not in (200, 201):
+            r2 = client.post(f"{webui_url}/api/v1/models/model/update", json=payload, headers=headers)
+            if r2.status_code not in (200, 201):
+                raise RuntimeError(
+                    f"Open WebUI model create {r.status_code}, update {r2.status_code}: {r2.text[:300]}"
+                )
+
+    summary = {
+        "persona": {"id": persona["id"], "name": persona["name"]},
+        "modules": [
+            {"name": m["name"], "repo": m.get("repo_name", m.get("repo_id")), "tokens": m.get("tokens")}
+            for m in modules
+        ],
+        "mcps": selected_mcp_ids,
+        "model": base_model,
+        "model_id": model_id,
+        "context_files_loaded": loaded_files,
+        "context_files_missing": missing_files,
+        "mcp_status": mcp_status,
+        "launched_at": datetime.now(timezone.utc).isoformat(),
+    }
+    print(f"  Launched: model={model_id}, modules={len(loaded_files)}, mcps={selected_mcp_ids}")
+    return f"{webui_url}/?models={model_id}", summary
 
 
 # ---------------------------------------------------------------------------
@@ -145,9 +461,19 @@ def ui():
     return (TEMPLATES / "index.html").read_text()
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "harness": HARNESS}
+
+
 # ---------------------------------------------------------------------------
 # Routes — Misc
 # ---------------------------------------------------------------------------
+
+@app.get("/api/harness")
+def api_harness():
+    return {"harness": HARNESS}
+
 
 @app.get("/api/mcps")
 def api_mcps():
@@ -174,8 +500,6 @@ def api_marketplace(search: str = "", scope: str = ""):
         params.append(scope)
     q += " ORDER BY verified DESC, name"
     rows = _rows(conn, q, params)
-
-    # Mark repos already added to context_repos
     added_urls = {r["repo_url"] for r in _rows(conn, "SELECT repo_url FROM context_repos WHERE repo_url IS NOT NULL")}
     conn.close()
     for r in rows:
@@ -214,7 +538,6 @@ def api_create_repo(req: CreateRepoRequest):
     if _one(conn, "SELECT id FROM context_repos WHERE id = ?", (req.id,)):
         conn.close()
         raise HTTPException(400, f"Repo '{req.id}' already registered")
-
     local_path = str(ROOT / ".personas" / "cache" / req.id) if req.repo_url else str(ROOT / "registry")
     conn.execute(
         "INSERT INTO context_repos(id, name, description, repo_url, branch, local_path, created_at) VALUES (?,?,?,?,?,?,?)",
@@ -223,10 +546,8 @@ def api_create_repo(req: CreateRepoRequest):
     )
     conn.commit()
     conn.close()
-
     if req.repo_url:
         subprocess.Popen([sys.executable, str(SYNC), req.id], cwd=ROOT)
-
     return {"status": "registered", "id": req.id}
 
 
@@ -323,7 +644,6 @@ def api_persona_detail(persona_id: str):
     persona = _one(conn, "SELECT * FROM personas WHERE id = ?", (persona_id,))
     if not persona:
         raise HTTPException(404, f"Persona '{persona_id}' not found")
-    # Join with context_repos to include repo name in each module
     modules = _rows(conn, """
         SELECT pm.*, cr.name AS repo_name, cr.repo_url AS repo_url
         FROM persona_modules pm
@@ -349,8 +669,8 @@ def api_delete_persona(persona_id: str):
 
 class AddModuleRequest(BaseModel):
     repo_id: str
-    path: str           # relative path within the repo
-    add_all: bool = False   # if True, add all modules from repo_id (path ignored)
+    path: str
+    add_all: bool = False
 
 
 @app.post("/api/personas/{persona_id}/modules")
@@ -364,7 +684,6 @@ def api_add_module(persona_id: str, req: AddModuleRequest):
         raise HTTPException(404, f"Repo '{req.repo_id}' not found")
 
     if req.add_all:
-        # Add every module in the repo that isn't already in the persona
         repo_mods = _rows(conn, "SELECT * FROM repo_modules WHERE repo_id = ?", (req.repo_id,))
         existing = {(r["repo_id"], r["path"]) for r in
                     _rows(conn, "SELECT repo_id, path FROM persona_modules WHERE persona_id = ?", (persona_id,))}
@@ -380,7 +699,6 @@ def api_add_module(persona_id: str, req: AddModuleRequest):
         conn.close()
         return {"status": "added", "count": len(added), "paths": added}
 
-    # Add a single module
     mod = _one(conn, "SELECT * FROM repo_modules WHERE repo_id = ? AND path = ?", (req.repo_id, req.path))
     if not mod:
         conn.close()
@@ -434,7 +752,7 @@ def api_toggle_module(persona_id: str, mod_id: int, req: ToggleModuleRequest):
 
 class LaunchRequest(BaseModel):
     persona_id: str
-    enabled_module_ids: list[int]   # IDs from persona_modules (session selection)
+    enabled_module_ids: list[int]
     enabled_mcps: list[str] = []
     model: str = ""
 
@@ -445,6 +763,11 @@ def api_launch(req: LaunchRequest):
         raise HTTPException(400, "No modules selected for this session")
 
     conn = _conn()
+    persona = _one(conn, "SELECT * FROM personas WHERE id = ?", (req.persona_id,))
+    if not persona:
+        conn.close()
+        raise HTTPException(404, f"Persona '{req.persona_id}' not found")
+
     placeholders = ",".join("?" * len(req.enabled_module_ids))
     modules = _rows(conn, f"""
         SELECT pm.*, cr.local_path
@@ -454,35 +777,83 @@ def api_launch(req: LaunchRequest):
     """, (*req.enabled_module_ids, req.persona_id))
     conn.close()
 
-    instruction_paths = []
-    for m in modules:
-        full_path = Path(m["local_path"]) / m["path"]
-        if full_path.exists():
-            instruction_paths.append(str(full_path))
-
-    model = _resolve_model(req.model)
-
+    global _active_session
     try:
-        _write_opencode_config(instruction_paths, req.enabled_mcps, model)
-        start_opencode()
-        return {"status": "ok", "redirect": "http://localhost:4000"}
+        if HARNESS == "opencode":
+            instruction_paths = [
+                str(Path(m["local_path"]) / m["path"])
+                for m in modules
+                if (Path(m["local_path"]) / m["path"]).exists()
+            ]
+            model = _resolve_model(req.model)
+            _write_opencode_config(instruction_paths, req.enabled_mcps, model)
+            start_opencode()
+            _active_session = {
+                "persona": {"id": persona["id"], "name": persona["name"]},
+                "modules": [{"name": m["name"], "repo": m.get("repo_name", m.get("repo_id"))} for m in modules],
+                "mcps": req.enabled_mcps,
+                "model": model,
+                "launched_at": datetime.now(timezone.utc).isoformat(),
+            }
+            return {"status": "ok", "redirect": f"http://localhost:{os.getenv('OPENCODE_PORT', '4000')}"}
+        else:
+            redirect, summary = _push_to_openwebui(persona, modules, req.enabled_mcps, req.model)
+            _active_session = summary
+            return {"status": "ok", "redirect": redirect, "summary": summary}
     except Exception as e:
         raise HTTPException(500, str(e))
 
 
 # ---------------------------------------------------------------------------
-# Routes — Status
+# Routes — Status / Stop / Session
 # ---------------------------------------------------------------------------
+
+@app.get("/api/session")
+def api_session():
+    """Return the last successfully launched session (persona, modules, MCPs, model)."""
+    if _active_session is None:
+        return JSONResponse({"active": False})
+    return JSONResponse({"active": True, **_active_session})
+
 
 @app.get("/api/status")
 def api_status():
-    running = _opencode_proc is not None and _opencode_proc.poll() is None
-    return {"opencode_running": running, "pid": _opencode_proc.pid if running else None}
+    if HARNESS == "opencode":
+        running = _proc is not None and _proc.poll() is None
+        mcpo_managed = _mcpo_proc is not None and _mcpo_proc.poll() is None
+        return {
+            "harness": "opencode",
+            "opencode_running": running,
+            "pid": _proc.pid if running else None,
+            "mcpo_managed_pid": _mcpo_proc.pid if mcpo_managed else None,
+        }
+
+    webui_url = os.getenv("OPENWEBUI_URL", "http://localhost:4000").rstrip("/")
+    mcpo_port = os.getenv("MCPO_PORT", "8001")
+    webui_up = mcpo_up = False
+    try:
+        with httpx.Client(timeout=2) as client:
+            webui_up = client.get(f"{webui_url}/health").status_code == 200
+    except Exception:
+        pass
+    try:
+        with httpx.Client(timeout=2) as client:
+            mcpo_up = client.get(f"http://localhost:{mcpo_port}/").status_code < 500
+    except Exception:
+        pass
+    managed = _mcpo_proc is not None and _mcpo_proc.poll() is None
+    return {
+        "harness": "openwebui",
+        "webui_up": webui_up,
+        "mcpo_up": mcpo_up,
+        "mcpo_managed_pid": _mcpo_proc.pid if managed else None,
+    }
 
 
 @app.post("/api/stop")
 def api_stop():
     stop_opencode()
+    stop_mcpo()
     return {"status": "stopped"}
 
 
@@ -492,5 +863,5 @@ def api_stop():
 
 if __name__ == "__main__":
     import uvicorn
-    print("Lattice Manager → http://localhost:5000")
+    print(f"Lattice Manager → http://localhost:5000  (harness: {HARNESS})")
     uvicorn.run(app, host="0.0.0.0", port=5000, log_level="warning")

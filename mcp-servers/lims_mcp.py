@@ -12,7 +12,13 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 DB_PATH = Path(__file__).parent.parent / "databases" / "lims.db"
-mcp = FastMCP("lims", description="LIMS — samples, assay results, compounds, instruments")
+mcp = FastMCP("lims", instructions="LIMS — samples, assay results, compounds, instruments")
+
+
+@mcp.tool()
+def health() -> dict:
+    """Return server health status."""
+    return {"status": "ok", "server": "lims", "db": str(DB_PATH)}
 
 
 def _conn():
