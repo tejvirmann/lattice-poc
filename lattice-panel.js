@@ -7,6 +7,53 @@
   let activeTab  = 'context';
   let expanded   = true;
 
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  // Load custom.css (fonts, scrollbars, hover states, prose — the parts that
+  // don't need to beat CSS layers).  v0.6.10 removed the auto-<link> for it.
+  function loadThemeCSS() {
+    if (document.getElementById('lattice-theme')) return;
+    const link = document.createElement('link');
+    link.id   = 'lattice-theme';
+    link.rel  = 'stylesheet';
+    link.href = '/static/custom.css';
+    document.head.appendChild(link);
+  }
+
+  // Set teal accent variables as INLINE styles on <html>.
+  // Inline styles beat every CSS layer, including Tailwind v4's @layer theme,
+  // so this is the only reliable way to remap --color-blue-* in v0.6.10.
+  function applyRootVars() {
+    const r = document.documentElement;
+    const vars = {
+      '--color-blue-50':  '#f3f8f7', '--color-blue-100': '#e6f1ef',
+      '--color-blue-200': '#c8dedd', '--color-blue-300': '#9dd0cc',
+      '--color-blue-400': '#62b3ae', '--color-blue-500': '#369996',
+      '--color-blue-600': '#2a7e7b', '--color-blue-700': '#15716a',
+      '--color-blue-800': '#0f5753', '--color-blue-900': '#0a3e3b',
+      '--color-blue-950': '#062927',
+    };
+    for (const [k, v] of Object.entries(vars)) r.style.setProperty(k, v);
+  }
+
+  // Paint the sidebar element directly — inline styles win over all CSS.
+  // Called every watch tick so Svelte re-renders can't wipe it.
+  function applySidebarStyle() {
+    const sb = document.getElementById('sidebar');
+    if (!sb) return;
+    sb.style.setProperty('background-color', '#369996');
+    sb.style.setProperty('color', 'rgba(255,255,255,0.92)');
+    sb.style.setProperty('border-right', '1px solid rgba(255,255,255,0.10)');
+    const gray = {
+      '--color-gray-950': '#2a7e7b', '--color-gray-900': '#2d8480',
+      '--color-gray-850': '#329490', '--color-gray-800': '#369996',
+      '--color-gray-700': '#42a8a4', '--color-gray-100': 'rgba(255,255,255,0.95)',
+      '--color-gray-200': 'rgba(255,255,255,0.85)', '--color-gray-300': 'rgba(255,255,255,0.75)',
+      '--color-gray-400': 'rgba(255,255,255,0.60)', '--color-gray-500': 'rgba(255,255,255,0.45)',
+      '--color-gray-600': 'rgba(255,255,255,0.35)',
+    };
+    for (const [k, v] of Object.entries(gray)) sb.style.setProperty(k, v);
+  }
+
   // ── Styles ────────────────────────────────────────────────────────────────
   function injectStyles() {
     const s = document.createElement('style');
@@ -189,6 +236,7 @@
   function watchSidebar() {
     clearInterval(watchTimer);
     watchTimer = setInterval(() => {
+      applySidebarStyle();
       if (document.getElementById('sidebar') && !document.getElementById('lattice-panel')) {
         inject();
       }
@@ -205,6 +253,8 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   function boot() {
+    loadThemeCSS();
+    applyRootVars();
     injectStyles();
     // Wait for sidebar to appear
     const obs = new MutationObserver(() => {
