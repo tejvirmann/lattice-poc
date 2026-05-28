@@ -259,12 +259,10 @@ def _register_mcp_servers(selected_mcp_ids: list[str], webui_url: str) -> bool:
         new_connections = kept + [
             {
                 "url": f"{mcpo_base}/{mid}",
-                "path": "/openapi.json",
-                "type": "openapi",
+                "path": "openapi.json",
                 "auth_type": None,
-                "headers": None,
                 "key": None,
-                "config": None,
+                "config": {"enable": True},
             }
             for mid in selected_mcp_ids
         ]
@@ -306,7 +304,7 @@ def _set_webui_suggestions(webui_url: str, headers: dict) -> None:
         with httpx.Client(timeout=5) as client:
             r = client.post(
                 f"{webui_url}/api/v1/configs/suggestions",
-                json=WEBUI_SUGGESTIONS,
+                json={"suggestions": WEBUI_SUGGESTIONS},
                 headers=headers,
             )
             if r.status_code not in (200, 201):
@@ -340,7 +338,7 @@ def _set_webui_banner(webui_url: str, headers: dict, persona: dict, modules: lis
     }]
     try:
         with httpx.Client(timeout=5) as client:
-            r = client.post(f"{webui_url}/api/v1/configs/banners", json=banner, headers=headers)
+            r = client.post(f"{webui_url}/api/v1/configs/banners", json={"banners": banner}, headers=headers)
             if r.status_code not in (200, 201):
                 print(f"  Warning: banner update returned {r.status_code}: {r.text[:120]}")
     except Exception as e:
@@ -360,7 +358,13 @@ def _push_to_openwebui(
         rname = m.get("repo_name") or m.get("repo_id", "context")
         repos.setdefault(rname, []).append(m)
 
-    header_lines = [f"# Lattice Session: {persona['name']}", "", "## Context Loaded"]
+    header_lines = [
+        "You are Lattice, an AI assistant for biologics manufacturing intelligence.",
+        "You help scientists, analysts, and quality teams reason across complex multi-system data.",
+        "Do not identify yourself as any specific AI model or disclose the underlying model provider. You are Lattice.",
+        "",
+        f"# Lattice Session: {persona['name']}", "", "## Context Loaded",
+    ]
     for rname, mods in repos.items():
         header_lines.append(f"### {rname}")
         for m in mods:
@@ -402,7 +406,7 @@ def _push_to_openwebui(
     # ── Base model ────────────────────────────────────────────────────────────
     base_model = os.getenv("OPENWEBUI_BASE_MODEL") or os.getenv("OLLAMA_MODEL", "qwen3:8b")
     if model_override:
-        base_model = model_override.split("/", 1)[-1] if "/" in model_override else model_override
+        base_model = model_override
 
     model_id = f"lattice-{persona['id']}"
     payload = {
@@ -428,7 +432,7 @@ def _push_to_openwebui(
     with httpx.Client(timeout=10) as client:
         r = client.post(f"{webui_url}/api/v1/models/create", json=payload, headers=headers)
         if r.status_code not in (200, 201):
-            r2 = client.post(f"{webui_url}/api/v1/models/model/update", json=payload, headers=headers)
+            r2 = client.post(f"{webui_url}/api/v1/models/model/update?id={model_id}", json=payload, headers=headers)
             if r2.status_code not in (200, 201):
                 raise RuntimeError(
                     f"Open WebUI model create {r.status_code}, update {r2.status_code}: {r2.text[:300]}"
@@ -838,7 +842,7 @@ def api_status():
         pass
     try:
         with httpx.Client(timeout=2) as client:
-            mcpo_up = client.get(f"http://localhost:{mcpo_port}/").status_code < 500
+            mcpo_up = client.get(f"http://localhost:{mcpo_port}/lims/openapi.json").status_code < 500
     except Exception:
         pass
     managed = _mcpo_proc is not None and _mcpo_proc.poll() is None

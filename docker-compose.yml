@@ -17,18 +17,20 @@ services:
     restart: "no"
 
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main
+    image: ghcr.io/open-webui/open-webui:v0.6.10
     ports:
       - "${OPENWEBUI_PORT:-4000}:8080"
     environment:
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - ENABLE_OLLAMA_API=${ENABLE_OLLAMA_API:-false}
       - WEBUI_AUTH=${WEBUI_AUTH:-False}
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-lattice-dev-secret}
       - WEBUI_NAME=${WEBUI_NAME:-Lattice-poc}
       - MCP_SERVER_URL=http://host.docker.internal:${MCPO_PORT:-8001}
-      # OpenRouter as an OpenAI-compatible provider
-      - OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
-      - OPENAI_API_KEY=${OPENROUTER_API_KEY}
+      - OPENAI_API_BASE_URL=${OPENAI_API_BASE_URL:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Skip loading the local sentence-transformers model (not needed; uses API or disabled)
+      - RAG_EMBEDDING_ENGINE=${RAG_EMBEDDING_ENGINE:-}
+      - RAG_RERANKING_MODEL=
     volumes:
       - open-webui-data:/app/backend/data
       - ./openwebui-theme.css:/app/build/static/custom.css:ro

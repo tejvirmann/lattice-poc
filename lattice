@@ -2,18 +2,16 @@
 # lattice — start the Lattice POC
 #
 # Usage:
-#   ./lattice          → Open WebUI harness (Manager + MCPO + Open WebUI)
-#   ./lattice web      → same as default
-#   ./lattice tui      → OpenCode TUI harness (Manager + MCPO + opencode CLI)
-#   ./lattice manager  → Manager UI only (assumes harness services already running)
-#   ./lattice seed     → (re)seed all databases
-#   ./lattice sync     → pull updates for all repo-backed context repos
-#   ./lattice setup    → create .venv + install all Python dependencies
-#   ./lattice install  → reinstall dependencies into existing .venv
-#
-# Harness env var (set in .env or inline):
-#   HARNESS=openwebui  → use Open WebUI at :4000  (default)
-#   HARNESS=opencode   → use OpenCode web at OPENCODE_PORT
+#   ./lattice              → same as ./lattice openrouter  (if PROVIDER=openrouter in .env)
+#   ./lattice web          → auto-detect provider from .env and delegate
+#   ./lattice openrouter   → OpenRouter cloud inference  (no local model, low memory)
+#   ./lattice local        → Ollama local inference      (requires Docker + Ollama)
+#   ./lattice tui          → OpenCode TUI harness (Manager + MCPO + opencode CLI)
+#   ./lattice manager      → Manager UI only (assumes harness services already running)
+#   ./lattice seed         → (re)seed all databases
+#   ./lattice sync         → pull updates for all repo-backed context repos
+#   ./lattice setup        → create .venv + install all Python dependencies
+#   ./lattice install      → reinstall dependencies into existing .venv
 
 set -e
 cd "$(dirname "$0")"
@@ -56,6 +54,24 @@ start_mcpo() {
   echo "  MCPO started (pid $MCPO_PID)"
 }
 
+# Configure docker-compose env vars for OpenRouter mode.
+# RAG_EMBEDDING_ENGINE=openai skips loading the local sentence-transformers
+# PyTorch model, cutting Open WebUI memory from ~2.5 GB to under 1 GB.
+setup_openrouter() {
+  export ENABLE_OLLAMA_API=false
+  export OPENAI_API_BASE_URL=https://openrouter.ai/api/v1
+  export OPENAI_API_KEY=${OPENROUTER_API_KEY}
+  export RAG_EMBEDDING_ENGINE=openai
+}
+
+# Configure docker-compose env vars for local Ollama mode.
+setup_local() {
+  export ENABLE_OLLAMA_API=true
+  export OPENAI_API_BASE_URL=
+  export OPENAI_API_KEY=
+  export RAG_EMBEDDING_ENGINE=
+}
+
 # ── commands ─────────────────────────────────────────────────────────────────
 
 cmd="${1:-}"
@@ -88,6 +104,87 @@ case "$cmd" in
     $PYTHON scripts/sync_personas.py "${@:2}"
     ;;
 
+  openrouter)
+    check_venv
+    load_env
+    check_dbs
+    setup_openrouter
+    start_mcpo
+
+    echo "Starting Open WebUI (OpenRouter)..."
+    docker compose up -d open-webui
+
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}"
+    echo "  Open WebUI       →  http://localhost:${OPENWEBUI_PORT}"
+    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
+    echo "  Provider         →  OpenRouter  (${OPENROUTER_MODEL:-deepseek/deepseek-v4-flash})"
+    echo ""
+    echo "  Open the Manager, pick a persona, click Launch."
+    echo ""
+
+    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
+    HARNESS=openwebui $PYTHON manager/server.py
+    ;;
+
+  local)
+    check_venv
+    load_env
+    check_dbs
+    setup_local
+    start_mcpo
+
+    echo "Starting Open WebUI + Ollama (local)..."
+    docker compose up -d open-webui ollama
+
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}"
+    echo "  Open WebUI       →  http://localhost:${OPENWEBUI_PORT}"
+    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
+    echo "  Provider         →  Ollama  (${OLLAMA_MODEL:-qwen3:8b})"
+    echo ""
+    echo "  Open the Manager, pick a persona, click Launch."
+    echo ""
+
+    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
+    HARNESS=openwebui $PYTHON manager/server.py
+    ;;
+
+  web|"")
+    check_venv
+    load_env
+    check_dbs
+
+    _provider="${PROVIDER:-openrouter}"
+    if [ "$_provider" = "ollama" ]; then
+      setup_local
+      _provider_label="local/Ollama"
+      docker_services="open-webui ollama"
+    else
+      setup_openrouter
+      _provider_label="OpenRouter"
+      docker_services="open-webui"
+    fi
+
+    start_mcpo
+
+    echo "Starting Open WebUI (${_provider_label})..."
+    # shellcheck disable=SC2086
+    docker compose up -d $docker_services
+
+    echo ""
+    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (${_provider_label})"
+    echo "  Open WebUI       →  http://localhost:${OPENWEBUI_PORT}"
+    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
+    echo ""
+    echo "  Open the Manager, pick a persona, click Launch."
+    echo "  Open WebUI opens with your context and MCPs loaded."
+    echo ""
+
+    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
+    HARNESS=openwebui $PYTHON manager/server.py
+    ;;
+
   tui)
     check_venv
     load_env
@@ -110,7 +207,6 @@ case "$cmd" in
     check_venv
     load_env
     check_dbs
-    # Inherit HARNESS from env (or default openwebui)
     HARNESS="${HARNESS:-openwebui}"
     echo ""
     echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (harness: ${HARNESS})"
@@ -125,30 +221,8 @@ case "$cmd" in
     $PYTHON manager/server.py
     ;;
 
-  web|"")
-    check_venv
-    load_env
-    check_dbs
-    start_mcpo
-
-    echo "Starting Open WebUI..."
-    docker compose up -d open-webui
-
-    echo ""
-    echo "  Lattice Manager  →  http://localhost:${MANAGER_PORT}  (harness: openwebui)"
-    echo "  Open WebUI       →  http://localhost:${OPENWEBUI_PORT}"
-    echo "  MCPO             →  http://localhost:${MCPO_PORT}"
-    echo ""
-    echo "  Open the Manager, pick a persona, click Launch."
-    echo "  Open WebUI opens with your context and MCPs loaded."
-    echo ""
-
-    trap "kill $MCPO_PID 2>/dev/null; echo 'MCPO stopped.'" EXIT
-    HARNESS=openwebui $PYTHON manager/server.py
-    ;;
-
   *)
-    echo "Usage: ./lattice [web|tui|manager|seed|sync|setup|install]"
+    echo "Usage: ./lattice [openrouter|local|web|tui|manager|seed|sync|setup|install]"
     exit 1
     ;;
 

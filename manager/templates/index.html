@@ -716,7 +716,16 @@
       <!-- Model -->
       <div class="sidebar-section">
         <h3>Model</h3>
-        <input id="sess-model" class="model-input" placeholder="ollama/qwen3:8b">
+        <select id="sess-model" class="model-input" onchange="onModelChange(this)">
+          <option value="deepseek/deepseek-v4-flash">DeepSeek V4 Flash</option>
+          <option value="deepseek/deepseek-v4-pro">DeepSeek V4 Pro</option>
+          <option value="anthropic/claude-opus-4-7">Claude Opus 4.7</option>
+          <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
+          <option value="openai/gpt-4o">GPT-4o</option>
+          <option value="google/gemini-2.0-flash">Gemini 2.0 Flash</option>
+          <option value="__custom__">Custom…</option>
+        </select>
+        <input id="sess-model-custom" class="model-input" placeholder="provider/model-id" style="display:none;margin-top:6px">
       </div>
 
       <!-- Launch -->
@@ -1218,10 +1227,23 @@ function updateCtxSummary() {
   `).join('');
 }
 
+function onModelChange(sel) {
+  const custom = document.getElementById('sess-model-custom');
+  custom.style.display = sel.value === '__custom__' ? '' : 'none';
+}
+
+function getSelectedModel() {
+  const sel = document.getElementById('sess-model');
+  if (sel.value === '__custom__') {
+    return document.getElementById('sess-model-custom').value.trim();
+  }
+  return sel.value;
+}
+
 async function launch() {
   if (!S.sessId) return toast('Select a persona first', false);
   if (!S.sessOn.size) return toast('Enable at least one module', false);
-  const model = document.getElementById('sess-model').value.trim();
+  const model = getSelectedModel();
   try {
     const d = await api('POST', '/api/launch', {
       persona_id: S.sessId,
