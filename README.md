@@ -5,6 +5,9 @@
 Lattice connects process data across sites and partners — without moving the data.
 Each organization keeps full custody of their systems. Lattice coordinates the insight.
 
+
+https://github.com/user-attachments/assets/ba9c1ac2-3db9-4a13-8d18-097c2621738c
+
 ---
 
 ## The problem
